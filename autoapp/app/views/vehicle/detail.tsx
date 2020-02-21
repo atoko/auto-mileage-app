@@ -1,5 +1,6 @@
 import React from 'react';
 import {Button, Text, TextInput, View} from "react-native";
+import PushNotification from "react-native-push-notification";
 import NewVehicle from "../../api/vehicles/new";
 import {getAuth} from "../../store/authorization/reducer";
 import {connect} from "react-redux";
@@ -57,7 +58,7 @@ class VehicleForm extends React.Component<any> {
             }
         });
     };
-    onSave = (event: any) => {
+    onSave = (event?: any) => {
         const {auth, navigation, loadVehicleToStore, route} = this.props;
         const {year, make, model, name} = this.state;
         const {vehicleId} = route?.params;
@@ -178,7 +179,7 @@ class VehicleForm extends React.Component<any> {
     }
 
     render() {
-        const {vehicle} = this.props;
+        const {vehicle, auth} = this.props;
         return <Container>
             <Content>
                 <Item stackedLabel>
@@ -219,6 +220,21 @@ class VehicleForm extends React.Component<any> {
                 >
                     <Text>vehicle.form.submit</Text>
                 </Button> }
+
+                <Button title={"Notification"} onPress={() => {
+                    PushNotification.localNotificationSchedule({
+                        id: vehicle ? `vehicle/{vehicle.id}` : "vehicle/new",
+                        /* iOS and Android properties */
+                        title: "My Notification Title", // (optional)
+                        message: "My Notification Message", // (required)
+                        playSound: false, // (optional) default: true
+                        soundName: 'default', // (optional) Sound to play when the notification is shown. Value of 'default' plays the default sound. It can be set to a custom sound such as 'android.resource://com.xyz/raw/my_sound'. It will look for the 'my_sound' audio file in 'res/raw' directory and play it. default: 'default' (default sound is played),
+                        userInfo: {
+                            id: auth.id,
+                        },
+                        date: new Date(Date.now() + 8 * 1000) // in 60 secs
+                    });
+                }} />
             </Content>
         </Container>
     }

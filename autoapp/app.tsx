@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import CreateStore from "./app/store/component";
 import Navigation from "./app/navigation";
+import { enableNotifications } from "./app/notifications";
 import { enableScreens } from 'react-native-screens';
 import {NavigationContainer} from "@react-navigation/native";
 
@@ -13,6 +14,7 @@ interface WithStore {
 }
 
 enableScreens();
+enableNotifications();
 
 const App: (props: WithStore) => React.ReactNode = ({store}) => {
     return (
