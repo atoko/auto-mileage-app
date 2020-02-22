@@ -1,5 +1,4 @@
 import React from "react";
-import {NavigationContainer} from "@react-navigation/native";
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
 
 import {Root} from "native-base";
@@ -11,14 +10,23 @@ export const Navigation = () =>
                 <Stack.Screen
                     name="Vehicle/List"
                     component={VehicleViews.list}
+                    options={{
+                        title: "Vehicles"
+                    }}
                 />
                 <Stack.Screen
                     name="Vehicle/Form"
                     component={VehicleViews.detail}
+                    options={{
+                        title: ""
+                    }}
                 />
                 <Stack.Screen
                     name="Vehicle/Detail"
                     component={VehicleViews.detail}
+                    options={{
+                        title: ""
+                    }}
                 />
             </Stack.Navigator>
         </Root>

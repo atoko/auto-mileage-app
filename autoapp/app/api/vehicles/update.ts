@@ -9,7 +9,7 @@ export interface VehiclePutRequest {
     body: VehicleData
 }
 
-interface VehiclePutResponse {
+export interface VehiclePutResponse {
     status: number,
     error?: any,
     data?: { vehicles: VehicleRow }

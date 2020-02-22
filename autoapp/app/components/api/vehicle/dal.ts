@@ -12,10 +12,14 @@ let inMemory : Dictionary<VehicleRow> = {
     "12345": {
         id: "12345",
         profileId: "local",
-        name: "Taurus",
-        make: "mi",
-        model: "azul",
-        year: "1993",
+        name: "Carrito",
+        make: "Mazda",
+        model: "3",
+        year: "2013",
+        mileage: {
+            current: "44693",
+            notificationDate: (Date.now() + (120 * 1000)).toString()
+        },
         created: Date.now().toString(),
         versionKey: Date.now().toString()
     }
@@ -55,7 +59,7 @@ export const createVehicle = (profile : ProfileRow, vehicle: VehicleData) : Prom
     })
 };
 
-export const updateVehicle = (profile : ProfileRow, vehicleId: string, vehicle: VehicleData) : Promise<VehicleRow>=> {
+export const updateVehicle = (profile : ProfileRow, vehicleId: string, vehicle: VehicleData) : Promise<VehicleRow> => {
     return new Promise((resolve, reject) => {
         resolve(new Promise((resolve, reject) => {
             if (vehicleId in inMemory) {
@@ -89,6 +93,41 @@ export const updateVehicle = (profile : ProfileRow, vehicleId: string, vehicle: 
         }))
     })
 };
+
+export const updateVehicleNotification = (profile : ProfileRow, vehicleId: string, timestamp: string) : Promise<VehicleRow> => {
+    return new Promise((resolve, reject) => {
+        resolve(new Promise((resolve, reject) => {
+            if (vehicleId in inMemory) {
+                inMemory[vehicleId] = {
+                    ...inMemory[vehicleId],
+                    ...vehicle,
+                    id: vehicleId,
+                    profileId: profile.id,
+                    versionKey: Date.now().toString()
+                };
+            } else {
+                throw VehicleNotFound(Date.now());
+            }
+
+            resolve(new Promise((resolve, reject) => {
+                const newVehicle = inMemory[vehicleId];
+                if (newVehicle.profileId in profileIndex) {
+                    if (profileIndex[newVehicle.profileId].indexOf(vehicleId) === -1) {
+                        profileIndex[newVehicle.profileId] = [
+                            ...profileIndex[newVehicle.profileId],
+                            vehicleId
+                        ];
+                    }
+                } else {
+                    profileIndex[newVehicle.profileId] = [
+                        vehicleId
+                    ];
+                }
+                resolve(inMemory[vehicleId] as VehicleRow)
+            }))
+        }))
+    })
+}
 
 export const readVehicleById = (id : string) : Promise<VehicleData> => {
     return new Promise((resolve, reject) => {

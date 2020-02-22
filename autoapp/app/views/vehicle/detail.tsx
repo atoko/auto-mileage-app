@@ -1,14 +1,39 @@
 import React from 'react';
-import {Button, Text, TextInput, View} from "react-native";
+import {connect} from "react-redux";
 import PushNotification from "react-native-push-notification";
+import {
+    ActionSheet,
+    Button,
+    Card,
+    CardItem,
+    Container,
+    Content,
+    H1,
+    H2,
+    Input,
+    Item,
+    Label,
+    Text,
+    Toast
+} from "native-base";
+import {Button as NativeButton} from "react-native";
 import NewVehicle from "../../api/vehicles/new";
 import {getAuth} from "../../store/authorization/reducer";
-import {connect} from "react-redux";
 import {getVehicleById, getVehicleIsFetching} from "../../store/vehicles/reducer";
 import {requestVehicleFetch, vehicleLoadAction} from "../../store/vehicles/actions";
-import {Container, Content, Input, Item, Toast} from "native-base";
-import {VehicleData, VehicleResponse} from "../../components/api/vehicle/dto";
-import UpdateVehicle from "../../api/vehicles/update";
+import {VehicleResponse} from "../../components/api/vehicle/dto";
+import UpdateVehicle, {VehiclePutResponse} from "../../api/vehicles/update";
+
+import moment from "moment";
+
+function strToUtf16Bytes(str: string) {
+    const bytes = [];
+    for (let ii = 0; ii < str.length; ii++) {
+        const code = str.charCodeAt(ii); // x00-xFFFF
+        bytes.push(code & 255, code >> 8); // low, high
+    }
+    return bytes;
+}
 
 class VehicleForm extends React.Component<any> {
     state = {
@@ -20,6 +45,8 @@ class VehicleForm extends React.Component<any> {
         make: "",
         name: "",
         model: "",
+        mileageCurrent: "",
+        notificationDate: null,
         versionKey: null
     };
     props: any;
@@ -27,9 +54,10 @@ class VehicleForm extends React.Component<any> {
     constructor(props: any) {
         super(props);
     }
-    onSubmit = (event: any) => {
+
+    onSubmit = (event?: any) => {
         const {auth, navigation, loadVehicleToStore} = this.props;
-        const {year, make, model, name} = this.state;
+        const {year, make, model, name, mileageCurrent} = this.state;
 
         this.setState({
             saving: true
@@ -41,7 +69,10 @@ class VehicleForm extends React.Component<any> {
                     year,
                     make,
                     model,
-                    name
+                    name,
+                    mileage: {
+                        current: mileageCurrent
+                    }
                 }
             }
         ).then((vehicle) => {
@@ -49,7 +80,7 @@ class VehicleForm extends React.Component<any> {
                 const {vehicles} = vehicle.data;
                 const {id: vehicleId} = vehicles;
                 loadVehicleToStore(vehicles);
-                navigation.replace("Vehicle/Detail", { vehicleId })
+                navigation.replace("Vehicle/Detail", {vehicleId})
             } else {
                 this.setState({
                     error: vehicle.error,
@@ -60,7 +91,7 @@ class VehicleForm extends React.Component<any> {
     };
     onSave = (event?: any) => {
         const {auth, navigation, loadVehicleToStore, route} = this.props;
-        const {year, make, model, name} = this.state;
+        const {year, make, model, name, mileageCurrent} = this.state;
         const {vehicleId} = route?.params;
 
         this.setState({
@@ -74,15 +105,19 @@ class VehicleForm extends React.Component<any> {
                     year,
                     make,
                     model,
-                    name
+                    name,
+                    mileage: {
+                        current: mileageCurrent,
+                        notificationDate: this.state.notificationDate as String
+                    }
                 }
             }
-        ).then((vehicle) => {
+        ).then((vehicle: VehiclePutResponse) => {
             if (vehicle.data) {
                 const {vehicles} = vehicle.data;
                 const {id: vehicleId} = vehicles;
                 loadVehicleToStore(vehicles);
-                navigation.replace("Vehicle/Detail", { vehicleId })
+                navigation.replace("Vehicle/Detail", {vehicleId})
             } else {
                 this.setState({
                     error: vehicle.error,
@@ -91,17 +126,41 @@ class VehicleForm extends React.Component<any> {
             }
         });
     };
+
+    setNotification(notificationDate: Date) {
+        const {vehicle, auth} = this.props;
+
+        PushNotification.localNotificationSchedule({
+            id: parseInt(`0x${vehicle.id.slice(0, 8)}`),
+            /* iOS and Android properties */
+            title: "My Notification Title", // (optional)
+            message: "My Notification Message", // (required)
+            playSound: false, // (optional) default: true
+            soundName: 'default', // (optional) Sound to play when the notification is shown. Value of 'default' plays the default sound. It can be set to a custom sound such as 'android.resource://com.xyz/raw/my_sound'. It will look for the 'my_sound' audio file in 'res/raw' directory and play it. default: 'default' (default sound is played),
+            userInfo: {
+                id: auth.id,
+            },
+            date: notificationDate
+        });
+
+        //replace with server put
+        this.setState({
+            notificationDate: notificationDate.getTime()
+        })
+    }
+
     loadVehicle(vehicleId: string) {
         const {fetchVehicle} = this.props;
         fetchVehicle(vehicleId);
     }
+
     updateNavigation() {
         const {navigation} = this.props;
         const {editing, versionKey} = this.state;
         if (versionKey !== null) {
             navigation.setOptions({
                 headerRight: () => (
-                    <Button onPress={() => {
+                    <Button transparent onPress={() => {
                         if (!editing) {
                             this.setState({
                                 editing: true
@@ -109,11 +168,16 @@ class VehicleForm extends React.Component<any> {
                         } else {
                             this.onSave();
                         }
-                    }} title={!editing ? "Edit" : "Save"} />
+                    }}>
+                        <Text>
+                            {!editing ? "Edit" : "Save"}
+                        </Text>
+                    </Button>
                 ),
             });
         }
     }
+
     synchronizeState(vehicle: VehicleResponse) {
         this.setState((...state) => {
             return {
@@ -121,10 +185,13 @@ class VehicleForm extends React.Component<any> {
                 make: vehicle.make,
                 name: vehicle.name,
                 model: vehicle.model,
+                mileageCurrent: vehicle.mileage?.current,
+                notificationDate: vehicle.mileage?.notificationDate,
                 versionKey: vehicle.versionKey
             }
         })
     }
+
     componentDidMount() {
         const {auth, vehicle, fetchVehicle, navigation, route} = this.props;
         const {vehicleId} = route?.params;
@@ -147,6 +214,7 @@ class VehicleForm extends React.Component<any> {
             })
         }
     }
+
     componentDidUpdate(prevProps: any, prevState: any, snapshot: any) {
         const {error: prevError} = prevState;
         const {error} = this.state;
@@ -179,62 +247,132 @@ class VehicleForm extends React.Component<any> {
     }
 
     render() {
-        const {vehicle, auth} = this.props;
+        const {vehicleId} = this.props.route?.params || {};
+        const {vehicle, auth, id} = this.props;
+        const {editing} = this.state;
         return <Container>
             <Content>
-                <Item stackedLabel>
-                    <Input placeholder='Name'
-                       onChangeText={ (text) =>
-                         this.setState({name: text})
+                <Card>
+                    {editing ?
+                        <CardItem bordered>
+                            <Input
+                                placeholder='Name'
+                                onChangeText={(text) =>
+                                    this.setState({name: text})
+
+                                }
+                                editable={editing}
+                                defaultValue={vehicle?.name}
+                            />
+                        </CardItem> :
+                        <CardItem header>
+                            <H1>{vehicle?.name}</H1>
+                        </CardItem>
                     }
-                        defaultValue={vehicle?.name}
-                    />
-                </Item>
-                <Item stackedLabel>
-                    <Input placeholder='Make' onChangeText={ (text) =>
-                        this.setState({make: text})
+                    <CardItem bordered>
+                        <Input
+                            placeholder='Make'
+                            onChangeText={(text) =>
+                                this.setState({make: text})
+                            }
+
+                            editable={editing}
+                            defaultValue={vehicle?.make}
+                        />
+                    </CardItem>
+                    <CardItem bordered>
+                        <Input
+                            placeholder='Year'
+                            onChangeText={(text) =>
+                                this.setState({year: text})
+                            }
+
+                            editable={editing}
+                            defaultValue={vehicle?.year}
+                        />
+                    </CardItem>
+                    <CardItem bordered>
+                        <Input
+                            placeholder='Model'
+                            onChangeText={(text) =>
+                                this.setState({model: text})
+                            }
+
+                            editable={editing}
+                            defaultValue={vehicle?.model}
+                        />
+                    </CardItem>
+
+                </Card>
+                <Card>
+                    <CardItem header>
+                        <H2>Mileage</H2>
+                        {
+                            vehicleId && <Button
+                                small
+                                bordered
+                                onPress={() => {
+                                    ActionSheet.show(
+                                        {
+                                            options: [
+                                                "In 1 minute",
+                                                "In 5 months",
+                                                "Next year",
+                                                "Custom",
+                                                "Cancel"
+                                            ],
+                                            cancelButtonIndex: 3,
+                                            title: "Remind me.."
+                                        },
+                                        buttonIndex => {
+                                            const min1 = new Date(Date.now() + 60 * 1000) // in 60 secs;
+                                            const mon5 = new Date(Date.now() + 13140000 * 1000) // in 60 secs;
+                                            const ny = new Date(Date.now() + 31798835 * 1000) // in 60 secs;
+                                            let ops = [min1, mon5, ny];
+                                            this.setNotification(ops[buttonIndex])
+                                        }
+                                    )
+                                }}
+                            >
+                                <Text>
+                                    Remind me
+                                </Text>
+                            </Button>
+                        }
+                    </CardItem>
+                    <CardItem bordered>
+                        <Input
+                            placeholder={"#"}
+                            keyboardType={"number-pad"}
+                            editable={!vehicleId}
+                            defaultValue={vehicleId ? vehicle?.mileage?.current : "0"}
+                            onChangeText={(text) =>
+                                this.setState({mileageCurrent: text})
+                            }
+                        />
+                    </CardItem>
+                    {
+                        vehicleId && <CardItem>
+                            <Label>
+                                Next reminder:
+                            </Label>
+                            {
+                                this.state.notificationDate &&
+                                    <Text>{moment.unix(parseInt(this.state.notificationDate) / 1000).format("LLL")}</Text>
+                            }
+                        </CardItem>
                     }
 
-                       defaultValue={vehicle?.make}
-                    />
-                </Item>
-                <Item stackedLabel>
-                    <Input placeholder='Year' onChangeText={ (text) =>
-                        this.setState({year: text})
-                    }
+                    <CardItem>
 
-                       defaultValue={vehicle?.year}
-                    />
-                </Item>
-                <Item stackedLabel>
-                    <Input placeholder='Model' onChangeText={ (text) =>
-                        this.setState({model: text})
-                    }
-
-                       defaultValue={vehicle?.model}
-                    />
-                </Item>
-                { this.state.versionKey === null && <Button
-                    title={vehicle?.id ? "Save" : "Create"}
-                    onPress={this.onSubmit}
-                >
-                    <Text>vehicle.form.submit</Text>
-                </Button> }
-
-                <Button title={"Notification"} onPress={() => {
-                    PushNotification.localNotificationSchedule({
-                        id: vehicle ? `vehicle/{vehicle.id}` : "vehicle/new",
-                        /* iOS and Android properties */
-                        title: "My Notification Title", // (optional)
-                        message: "My Notification Message", // (required)
-                        playSound: false, // (optional) default: true
-                        soundName: 'default', // (optional) Sound to play when the notification is shown. Value of 'default' plays the default sound. It can be set to a custom sound such as 'android.resource://com.xyz/raw/my_sound'. It will look for the 'my_sound' audio file in 'res/raw' directory and play it. default: 'default' (default sound is played),
-                        userInfo: {
-                            id: auth.id,
-                        },
-                        date: new Date(Date.now() + 8 * 1000) // in 60 secs
-                    });
-                }} />
+                        {!vehicleId && <Button
+                            large
+                            onPress={this.onSubmit}
+                        >
+                            <Text>Create</Text>
+                        </Button>}
+                    </CardItem>
+                </Card>
             </Content>
         </Container>
     }

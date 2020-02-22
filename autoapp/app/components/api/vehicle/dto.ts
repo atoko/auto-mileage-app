@@ -2,11 +2,17 @@
 global.window = null;
 const microValidator = require('micro-validator').default;
 
+export interface MileageData {
+    current: string,
+    notificationDate?: string
+}
+
 export interface VehicleData {
     name: string;
     make: string;
     model: string;
     year: string;
+    mileage: MileageData;
 }
 
 export interface VehicleRow extends VehicleData {
@@ -38,4 +44,18 @@ export const VehicleRequestValidation = (vehicle: VehicleData) => {
             }
         },
     }, vehicle);
-}
+};
+
+export const MileageRequestValidation = (vehicle: MileageData) => {
+    return microValidator.validate({
+        current: {
+            required: {
+                errorMsg: `current mileage required`
+            },
+            regex: {
+                pattern: /^(0|[1-9][0-9]*)$/,
+                errorMsg: 'mileage must be numeric'
+            }
+        },
+    }, vehicle);
+};

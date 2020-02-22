@@ -35,14 +35,16 @@ function* fetchVehicleById(id) {
     try {
         //load local profile
         let {auth} = yield select();
-        console.debug("fetching vehicle", id);
+        console.debug("vehiclesaga/fetching vehicle", id);
         let vehicle = yield readVehicleById(id);
+
+        console.debug("vehiclesaga/vehicle loaded", vehicle);
         if (vehicle) {
             yield put(vehicleLoadAction({ ...vehicle }));
         }
 
     } catch(e) {
-        console.error("Error fetching vehicle:", e)
+        console.error("vehiclesaga/Error fetching vehicle:", e)
         yield put(vehicleFetchErrorAction());
     }
 }

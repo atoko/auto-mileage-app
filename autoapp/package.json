@@ -10,6 +10,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@react-native-community/async-storage": "^2.0.0-rc.2",
+    "@react-native-community/async-storage-backend-legacy": "^2.0.0-rc.2",
     "@react-native-community/masked-view": "^0.1.6",
     "@react-native-community/push-notification-ios": "^1.0.6",
     "@react-navigation/native": "^5.0.5",
@@ -23,6 +25,7 @@
     "@types/react-test-renderer": "^16.9.2",
     "babel-plugin-module-resolver": "^4.0.0",
     "micro-validator": "^0.0.5",
+    "moment": "^2.24.0",
     "native-base": "^2.13.8",
     "react": "16.9.0",
     "react-native": "0.61.5",

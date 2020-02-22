@@ -3,8 +3,9 @@ import {connect} from "react-redux";
 import {requestProfileFetch} from "../../store/profile/actions";
 import {getAuth} from "../../store/authorization/reducer";
 import {getProfileById} from "../../store/profile/reducer";
-import {ActivityIndicator, Button, Text, View} from "react-native";
-import {Content, List, ListItem, Spinner} from "native-base";
+import {ActivityIndicator, View} from "react-native";
+import {Button, Content, List, ListItem, Spinner, Text} from "native-base";
+
 
 class Home extends React.PureComponent<any> {
 
@@ -13,16 +14,20 @@ class Home extends React.PureComponent<any> {
         const {navigation} = props;
         navigation.setOptions({
             headerRight: () => (
-                <Button onPress={() => {
-                    navigation.navigate("Vehicle/Form", {vehicleId: null})
-                }} title="+" />
+                <Button
+                    transparent
+                    onPress={() => {
+                        navigation.navigate("Vehicle/Form", {vehicleId: null})
+                    }}
+                ><Text>+</Text>
+                </Button>
             ),
         });
     }
 
     selectVehicle = (vehicle: any) => () => {
         let {navigation} = this.props;
-        navigation.navigate("Vehicle/Detail", { vehicleId: vehicle.id, _vehicle_: vehicle })
+        navigation.navigate("Vehicle/Detail", {vehicleId: vehicle.id, _vehicle_: vehicle})
     };
 
     componentDidMount() {
@@ -36,6 +41,7 @@ class Home extends React.PureComponent<any> {
             })
         }
     }
+
     componentDidUpdate(prevProps: any, prevState: any, snapshot: any) {
         const {auth, profile, fetchProfile} = this.props;
 
@@ -53,17 +59,17 @@ class Home extends React.PureComponent<any> {
         }
 
         return <View>
-                <View>
-                    {/*<Text >customer.home.greeting</Text>*/}
-                </View>
-                    {/*<Text>customer.home.vehicles</Text>*/}
-                    <List dataArray={Object.values(profile.vehicles)} renderRow={(item) => {
-                        let vehicle = item;
-                        return <ListItem key={""} button onPress={this.selectVehicle(vehicle).bind(this)}>
-                            <Text>{vehicle.name} | {vehicle.year} | {vehicle.make} | {vehicle.model}</Text>
-                        </ListItem>
-                    }}>
-                    </List>
+            <View>
+                {/*<Text >customer.home.greeting</Text>*/}
+            </View>
+            {/*<Text>customer.home.vehicles</Text>*/}
+            <List dataArray={Object.values(profile.vehicles)} renderRow={(item) => {
+                let vehicle = item;
+                return <ListItem key={""} button onPress={this.selectVehicle(vehicle).bind(this)}>
+                    <Text>{vehicle.name} | {vehicle.year} | {vehicle.make} | {vehicle.model}</Text>
+                </ListItem>
+            }}>
+            </List>
         </View>
     }
 
