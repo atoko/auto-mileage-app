@@ -4,26 +4,12 @@ import {ProfileNotFound} from "../response/profile/exception";
 import {VehicleData, VehicleRow} from "./dto";
 import {ProfileData, ProfileRow} from "../profile/dto";
 import {VehicleNotFound} from "../response/vehicle/exception";
+import {VehicleStorage} from "../asyncStorage";
 
 interface Dictionary<T> {
     [key: string]: T;
 }
-let inMemory : Dictionary<VehicleRow> = {
-    "12345": {
-        id: "12345",
-        profileId: "local",
-        name: "Carrito",
-        make: "Mazda",
-        model: "3",
-        year: "2013",
-        mileage: {
-            current: "44693",
-            notificationDate: (Date.now() + (120 * 1000)).toString()
-        },
-        created: Date.now().toString(),
-        versionKey: Date.now().toString()
-    }
-};
+
 let profileIndex : Dictionary<string[]> = {
     "local": [
         "12345"
@@ -41,8 +27,7 @@ export const createVehicle = (profile : ProfileRow, vehicle: VehicleData) : Prom
                 created: Date.now().toString(),
                 versionKey: Date.now().toString()
             };
-            inMemory[id] = newVehicle;
-            resolve(new Promise((resolve, reject) => {
+            VehicleStorage.set(id.toString(), JSON.stringify(newVehicle)).then(() => {
                 if (newVehicle.profileId in profileIndex) {
                     profileIndex[newVehicle.profileId] = [
                         ...profileIndex[newVehicle.profileId],
@@ -53,44 +38,46 @@ export const createVehicle = (profile : ProfileRow, vehicle: VehicleData) : Prom
                         id
                     ];
                 }
-                resolve(inMemory[id] as VehicleRow)
-            }))
+                resolve(newVehicle);
+            }).catch((e: any) => {
+                console.error(e)
+            });
         }))
     })
 };
 
 export const updateVehicle = (profile : ProfileRow, vehicleId: string, vehicle: VehicleData) : Promise<VehicleRow> => {
     return new Promise((resolve, reject) => {
-        resolve(new Promise((resolve, reject) => {
-            if (vehicleId in inMemory) {
-                inMemory[vehicleId] = {
-                    ...inMemory[vehicleId],
-                    ...vehicle,
-                    id: vehicleId,
-                    profileId: profile.id,
-                    versionKey: Date.now().toString()
-                };
-            } else {
-                throw VehicleNotFound(Date.now());
-            }
+       return new Promise((resolve, reject) => {
+           if (vehicleId in inMemory) {
+               const newVehicle = {
+                   ...inMemory[vehicleId],
+                   ...vehicle,
+                   id: vehicleId,
+                   profileId: profile.id,
+                   versionKey: Date.now().toString()
+               };
 
-            resolve(new Promise((resolve, reject) => {
-                const newVehicle = inMemory[vehicleId];
-                if (newVehicle.profileId in profileIndex) {
-                    if (profileIndex[newVehicle.profileId].indexOf(vehicleId) === -1) {
-                        profileIndex[newVehicle.profileId] = [
-                            ...profileIndex[newVehicle.profileId],
-                            vehicleId
-                        ];
-                    }
-                } else {
-                    profileIndex[newVehicle.profileId] = [
-                        vehicleId
-                    ];
-                }
-                resolve(inMemory[vehicleId] as VehicleRow)
-            }))
-        }))
+               VehicleStorage.set(vehicleId, newVehicle).then(() => {
+                   const newVehicle = inMemory[vehicleId];
+                   if (newVehicle.profileId in profileIndex) {
+                       if (profileIndex[newVehicle.profileId].indexOf(vehicleId) === -1) {
+                           profileIndex[newVehicle.profileId] = [
+                               ...profileIndex[newVehicle.profileId],
+                               vehicleId
+                           ];
+                       }
+                   } else {
+                       profileIndex[newVehicle.profileId] = [
+                           vehicleId
+                       ];
+                   }
+                   resolve(inMemory[vehicleId] as VehicleRow)
+               });
+           } else {
+               throw VehicleNotFound(Date.now());
+           }
+       })
     })
 };
 
@@ -130,25 +117,29 @@ export const updateVehicleNotification = (profile : ProfileRow, vehicleId: strin
 }
 
 export const readVehicleById = (id : string) : Promise<VehicleData> => {
-    return new Promise((resolve, reject) => {
-        if (id in inMemory) {
-            return resolve(new Promise((resolve, reject) => resolve(inMemory[id])))
+    return VehicleStorage.get(id.toString()).then((vehicleRow: VehicleRow) => {
+        if (vehicleRow != null) {
+            return new Promise((resolve, reject) => resolve(vehicleRow))
         } else {
-            return reject(VehicleNotFound(Date.now()))
+            return Promise.reject(VehicleNotFound(Date.now()))
         }
+    }).catch(() => {
+        return Promise.reject(VehicleNotFound(Date.now()))
     })
 };
 export const readVehiclesByProfileId = (profileId : string) : Promise<Array<VehicleRow|null>> => {
     return new Promise((resolve, reject) => {
         if (profileId in profileIndex) {
-            let vehicles = profileIndex[profileId].map((vehicleId) => {
-                if (vehicleId in inMemory) {
-                    return inMemory[vehicleId]
+            let vehicleIds = profileIndex[profileId];
+
+            return VehicleStorage.getMultiple(vehicleIds).then((vehicles : VehicleRow[] | null) => {
+                console.info(vehicles);
+                if (vehicles !== null) {
+                    return resolve(Object.values(vehicles).filter((v) => v != null))
                 } else {
-                    return null
+                    return reject(VehicleNotFound(Date.now()))
                 }
-            }).filter((vehicle) => vehicle !== null);
-            return resolve(vehicles)
+            })
         } else {
             return reject(ProfileNotFound(Date.now()))
         }

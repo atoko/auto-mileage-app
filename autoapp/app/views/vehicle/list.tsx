@@ -65,7 +65,7 @@ class Home extends React.PureComponent<any> {
             {/*<Text>customer.home.vehicles</Text>*/}
             <List dataArray={Object.values(profile.vehicles)} renderRow={(item) => {
                 let vehicle = item;
-                return <ListItem key={""} button onPress={this.selectVehicle(vehicle).bind(this)}>
+                return <ListItem key={vehicle.id} button onPress={this.selectVehicle(vehicle).bind(this)}>
                     <Text>{vehicle.name} | {vehicle.year} | {vehicle.make} | {vehicle.model}</Text>
                 </ListItem>
             }}>
