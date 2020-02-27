@@ -27,26 +27,29 @@ export interface VehicleResponse extends VehicleRow {
 }
 
 export const VehicleRequestValidation = (vehicle: VehicleData) => {
-    return microValidator.validate({
-        year: {
-            required: {
-                errorMsg: `year required`
-            }
-        },
-        model: {
-            required: {
-                errorMsg: `model required`
-            }
-        },
-        make: {
-            required: {
-                errorMsg: `make required`
-            }
-        },
-    }, vehicle);
+    return {
+        ...microValidator.validate({
+            year: {
+                required: {
+                    errorMsg: `year required`
+                }
+            },
+            model: {
+                required: {
+                    errorMsg: `model required`
+                }
+            },
+            make: {
+                required: {
+                    errorMsg: `make required`
+                }
+            },
+        }, vehicle),
+        ...MileageRequestValidation(vehicle.mileage)
+    };
 };
 
-export const MileageRequestValidation = (vehicle: MileageData) => {
+export const MileageRequestValidation = (mileage: MileageData) => {
     return microValidator.validate({
         current: {
             required: {
@@ -57,5 +60,5 @@ export const MileageRequestValidation = (vehicle: MileageData) => {
                 errorMsg: 'mileage must be numeric'
             }
         },
-    }, vehicle);
+    }, mileage);
 };

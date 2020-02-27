@@ -15,6 +15,8 @@ export interface ProfileRow extends ProfileData {
     created: string;
 }
 
+export interface ProfileVehicleRow extends String {}
+
 export interface ProfileResponse extends ProfileRow {
     vehicles?: Array<VehicleResponse | null>
 }

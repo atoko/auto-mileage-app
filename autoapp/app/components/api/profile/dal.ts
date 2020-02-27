@@ -2,7 +2,6 @@
 import uuidv4 from "uuid/v4"
 import {ProfileNotFound} from "../response/profile/exception";
 import {ProfileData, ProfileResponse, ProfileRow} from "./dto";
-import {readVehiclesByProfileId} from "../vehicle/dal";
 
 interface Dictionary<T> {
     [key: string]: T;
@@ -15,9 +14,14 @@ let inMemory : Dictionary<ProfileRow> = {
         phone: "7874210686"
     }
 };
+
+export const PROFILE_NAMESPACE = (key: string) => `profiles/${key}`;
+export const PROFILE_ID = (id: string) => PROFILE_NAMESPACE((id));
+export const PROFILE_VEHICLE = (id: string) => `${PROFILE_ID(id)}/vehicles`;
+
 export const createProfile = (profile : ProfileData) : Promise<ProfileData>=> {
-    return new Promise((resolve, reject) => {
-        resolve(new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
+        resolve(new Promise((resolve) => {
             let id = uuidv4();
             inMemory[id] = {
                 ...profile,
@@ -31,15 +35,11 @@ export const createProfile = (profile : ProfileData) : Promise<ProfileData>=> {
 };
 export const readProfileById = (id : string) : Promise<ProfileResponse> => {
     return new Promise((resolve, reject) => {
-        console.log(JSON.stringify(inMemory));
         if (id in inMemory) {
-            resolve(readVehiclesByProfileId(id).then((vehicles) => {
                 let profile = inMemory[id];
-                return new Promise((resolve, reject) => resolve({
-                    ...profile,
-                    vehicles
-                }))
-            }));
+                return resolve(new Promise((resolve) => resolve({
+                    ...profile
+                })))
         } else {
             reject(ProfileNotFound(Date.now()))
         }

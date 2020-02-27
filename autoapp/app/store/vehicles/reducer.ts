@@ -2,12 +2,17 @@ import {VEHICLE_FETCH_ERROR, VEHICLE_FETCH_REQUEST, VEHICLE_LOAD} from "./action
 
 export const key = "vehicles";
 
-export const defaultState = () => ({
+interface VehicleStore {
+    map: object,
+    isFetching: boolean | null
+}
+
+export const defaultState: () => VehicleStore = () => ({
     map: {},
     isFetching: null
 });
 
-const loadVehicle = (state = {}, action = {}) => {
+const loadVehicle = (state: VehicleStore = defaultState(), action: any = {}) => {
     const {vehicle} = action;
 
     if (vehicle && vehicle.id) {
@@ -23,7 +28,7 @@ const loadVehicle = (state = {}, action = {}) => {
     }
 };
 
-const reducer = (state = null, action = {}) => {
+const reducer = (state: any = null, action: any = {}) => {
   const {type} = action;
   switch (type) {
       case VEHICLE_LOAD:
@@ -38,15 +43,15 @@ const reducer = (state = null, action = {}) => {
 };
 
 
-export const getVehicleMap = (state) => {
+export const getVehicleMap = (state: any) => {
     return state[key] && state[key].map;
 };
 
-export const getVehicleById = (state, id) => {
+export const getVehicleById = (state: any, id: string) => {
     return getVehicleMap(state) && state[key].map[id];
 };
 
-export const getVehicleIsFetching = (state, id) => {
+export const getVehicleIsFetching = (state: any) => {
     return state[key] && state[key].isFetching;
 };
 

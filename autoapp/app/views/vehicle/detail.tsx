@@ -16,7 +16,7 @@ import {
     Text,
     Toast
 } from "native-base";
-import {Button as NativeButton} from "react-native";
+import {Alert, Button as NativeButton} from "react-native";
 import NewVehicle from "../../api/vehicles/new";
 import {getAuth} from "../../store/authorization/reducer";
 import {getVehicleById, getVehicleIsFetching} from "../../store/vehicles/reducer";
@@ -41,6 +41,7 @@ class VehicleForm extends React.Component<any> {
         editing: false,
         loading: false,
         saving: false,
+        editingMileage: false,
         year: "",
         make: "",
         name: "",
@@ -49,6 +50,7 @@ class VehicleForm extends React.Component<any> {
         notificationDate: null,
         versionKey: null
     };
+    mileageCurrentInput = React.createRef();
     props: any;
 
     constructor(props: any) {
@@ -117,7 +119,12 @@ class VehicleForm extends React.Component<any> {
                 const {vehicles} = vehicle.data;
                 const {id: vehicleId} = vehicles;
                 loadVehicleToStore(vehicles);
-                navigation.replace("Vehicle/Detail", {vehicleId})
+                this.loadVehicle(vehicleId);
+                this.setState({
+                    error: null,
+                    saving: false,
+                    editing: false
+                })
             } else {
                 this.setState({
                     error: vehicle.error,
@@ -129,16 +136,18 @@ class VehicleForm extends React.Component<any> {
 
     setNotification(notificationDate: Date) {
         const {vehicle, auth} = this.props;
+        const {year, make, model, name, mileageCurrent} = this.state;
 
         PushNotification.localNotificationSchedule({
             id: parseInt(`0x${vehicle.id.slice(0, 8)}`),
             /* iOS and Android properties */
-            title: "My Notification Title", // (optional)
-            message: "My Notification Message", // (required)
+            title: "Mileage alert", // (optional)
+            message: `Check your vehicle ${name}`, // (required)
             playSound: false, // (optional) default: true
             soundName: 'default', // (optional) Sound to play when the notification is shown. Value of 'default' plays the default sound. It can be set to a custom sound such as 'android.resource://com.xyz/raw/my_sound'. It will look for the 'my_sound' audio file in 'res/raw' directory and play it. default: 'default' (default sound is played),
             userInfo: {
                 id: auth.id,
+                vehicleId: vehicle.id
             },
             date: notificationDate
         });
@@ -146,7 +155,7 @@ class VehicleForm extends React.Component<any> {
         //replace with server put
         this.setState({
             notificationDate: notificationDate.getTime()
-        })
+        }, this.onSave)
     }
 
     loadVehicle(vehicleId: string) {
@@ -157,6 +166,7 @@ class VehicleForm extends React.Component<any> {
     updateNavigation() {
         const {navigation} = this.props;
         const {editing, versionKey} = this.state;
+        console.info("[vehicle/detail] ", versionKey);
         if (versionKey !== null) {
             navigation.setOptions({
                 headerRight: () => (
@@ -179,39 +189,44 @@ class VehicleForm extends React.Component<any> {
     }
 
     synchronizeState(vehicle: VehicleResponse) {
-        this.setState((...state) => {
-            return {
-                year: vehicle.year,
-                make: vehicle.make,
-                name: vehicle.name,
-                model: vehicle.model,
-                mileageCurrent: vehicle.mileage?.current,
-                notificationDate: vehicle.mileage?.notificationDate,
-                versionKey: vehicle.versionKey
-            }
+        this.setState({
+            year: vehicle.year,
+            make: vehicle.make,
+            name: vehicle.name,
+            model: vehicle.model,
+            mileageCurrent: vehicle.mileage?.current,
+            notificationDate: vehicle.mileage?.notificationDate,
+            versionKey: vehicle.versionKey
         })
     }
-
-    componentDidMount() {
-        const {auth, vehicle, fetchVehicle, navigation, route} = this.props;
+    onFocus = () => {
+        const {auth, vehicle, fetchVehicle, route} = this.props;
         const {vehicleId} = route?.params;
 
-        if (navigation) {
-            navigation.addListener('focus', () => {
-                if (auth.ready === true) {
-                    if (vehicleId) {
-                        this.loadVehicle(vehicleId);
-                    } else {
-                        this.setState({
-                            editing: true
-                        });
-                    }
-                }
+        if (auth.ready === true) {
+            if (vehicleId) {
+                this.loadVehicle(vehicleId);
+            } else {
+                this.setState({
+                    editing: true
+                });
+            }
+        }
 
-                if (vehicle) {
-                    this.synchronizeState(vehicle);
-                }
-            })
+        if (vehicle) {
+            this.synchronizeState(vehicle);
+        }
+    }
+    componentDidMount() {
+        const {navigation} = this.props;
+        if (navigation) {
+            navigation.addListener('focus', this.onFocus);
+        }
+    }
+    componentWillUnmount() {
+        const {navigation} = this.props;
+        if (navigation) {
+            navigation.removeListener('focus', this.onFocus)
         }
     }
 
@@ -224,16 +239,15 @@ class VehicleForm extends React.Component<any> {
         if (prevState.editing !== this.state.editing) {
             this.updateNavigation()
         }
-
-        if (vehicleIsFetching === false) {
-            this.updateNavigation();
-        }
-
         //versionKwt
         if (prevProps.vehicle === null || prevProps.vehicle === undefined) {
             if (vehicle) {
                 this.synchronizeState(vehicle);
             }
+        }
+
+        if (vehicleIsFetching === false && prevProps.vehicleIsFetching === true) {
+            this.updateNavigation();
         }
 
         if (error !== prevError) {
@@ -245,134 +259,183 @@ class VehicleForm extends React.Component<any> {
         }
 
     }
-
-    render() {
-        const {vehicleId} = this.props.route?.params || {};
-        const {vehicle, auth, id} = this.props;
+    renderForm() {
+        const {vehicle} = this.props;
         const {editing} = this.state;
+        return <Card>
+            {editing ?
+                <CardItem bordered>
+                    <Input
+                        placeholder='Name'
+                        onChangeText={(text) =>
+                            this.setState({name: text})
+
+                        }
+                        editable={editing}
+                        defaultValue={vehicle?.name}
+                    />
+                </CardItem> :
+                <CardItem header bordered>
+                    <H1>{vehicle?.name}</H1>
+                </CardItem>
+            }
+            <CardItem bordered={editing}>
+                <Input
+                    placeholder='Make'
+                    onChangeText={(text) =>
+                        this.setState({make: text})
+                    }
+
+                    editable={editing}
+                    defaultValue={vehicle?.make}
+                />
+            </CardItem>
+            <CardItem bordered={editing}>
+                <Input
+                    placeholder='Year'
+                    onChangeText={(text) =>
+                        this.setState({year: text})
+                    }
+
+                    editable={editing}
+                    defaultValue={vehicle?.year}
+                />
+            </CardItem>
+            <CardItem bordered={editing}>
+                <Input
+                    placeholder='Model'
+                    onChangeText={(text) =>
+                        this.setState({model: text})
+                    }
+
+                    editable={editing}
+                    defaultValue={vehicle?.model}
+                />
+            </CardItem>
+
+        </Card>
+    }
+    renderMileage() {
+        const {vehicleId} = this.props.route?.params || {};
+        const {vehicle = {}} = this.props;
+        const {vehicleMileage = []} = vehicle;
+        const {editing, editingMileage} = this.state;
+
+        const lastMileage = vehicleMileage[0];
+
+        return <Card>
+            <CardItem header bordered>
+                <Input
+                    editable={false}
+                >
+                    <H2>Mileage</H2>
+                </Input>
+                {
+                    vehicleId && <Button
+                        small
+                        bordered
+                        onPress={() => {
+                            ActionSheet.show(
+                                {
+                                    options: [
+                                        "In 1 minute",
+                                        "In 5 months",
+                                        "Next year",
+                                        "Custom",
+                                        "Cancel"
+                                    ],
+                                    cancelButtonIndex: 3,
+                                    title: "Remind me.."
+                                },
+                                buttonIndex => {
+                                    const min1 = new Date(Date.now() + 60 * 1000) // in 60 secs;
+                                    const mon5 = new Date(Date.now() + 13140000 * 1000) // in 60 secs;
+                                    const ny = new Date(Date.now() + 31798835 * 1000) // in 60 secs;
+                                    let ops = [min1, mon5, ny];
+                                    if (buttonIndex < 3) {
+                                        this.setNotification(ops[buttonIndex])
+                                    }
+                                }
+                            )
+                        }}
+                    >
+                        <Text>
+                            Remind me
+                        </Text>
+                    </Button>
+                }
+            </CardItem>
+            {
+                vehicleId && <CardItem bordered>
+                    <Input
+                        editable={false}
+                    >
+                        Next reminder:
+                    </Input>
+                    {
+                        this.state.notificationDate &&
+                        <Input
+                            editable={false}
+                        >
+                            <Text>
+                                {moment.unix(parseInt(this.state.notificationDate) / 1000).format("ll")}
+                            </Text>
+                        </Input>
+                    }
+                </CardItem>
+            }
+            <CardItem>
+                <Input
+                    placeholder={"#"}
+                    keyboardType={"number-pad"}
+                    editable={!vehicleId || editing}
+                    ref={this.mileageCurrentInput}
+                    defaultValue={vehicleId ? vehicle?.mileage?.current : "0"}
+                    onChangeText={(text) =>
+                        this.setState({mileageCurrent: text})
+                    }
+                />
+                {
+                    vehicleId && lastMileage && <Input
+                        editable={false}
+                    >
+                        <Text>
+                            {moment.unix(parseInt(lastMileage.created) / 1000).format("lll")}
+                        </Text>
+                    </Input>
+                }
+                {/*{*/}
+                {/*    vehicleId && false && <Button*/}
+                {/*        small*/}
+                {/*        bordered*/}
+                {/*        onPress={() => {*/}
+                {/*            this.setState({*/}
+                {/*                editingMileage: !editingMileage*/}
+                {/*            });*/}
+                {/*        }}*/}
+                {/*    >*/}
+                {/*        <Text>*/}
+                {/*            +*/}
+                {/*        </Text>*/}
+                {/*    </Button>*/}
+                {/*}*/}
+            </CardItem>
+            <CardItem>
+
+                {!vehicleId && <Button
+                    large
+                    onPress={this.onSubmit}
+                >
+                    <Text>Create</Text>
+                </Button>}
+            </CardItem>
+        </Card>
+    }
+    render() {
         return <Container>
             <Content>
-                <Card>
-                    {editing ?
-                        <CardItem bordered>
-                            <Input
-                                placeholder='Name'
-                                onChangeText={(text) =>
-                                    this.setState({name: text})
-
-                                }
-                                editable={editing}
-                                defaultValue={vehicle?.name}
-                            />
-                        </CardItem> :
-                        <CardItem header>
-                            <H1>{vehicle?.name}</H1>
-                        </CardItem>
-                    }
-                    <CardItem bordered>
-                        <Input
-                            placeholder='Make'
-                            onChangeText={(text) =>
-                                this.setState({make: text})
-                            }
-
-                            editable={editing}
-                            defaultValue={vehicle?.make}
-                        />
-                    </CardItem>
-                    <CardItem bordered>
-                        <Input
-                            placeholder='Year'
-                            onChangeText={(text) =>
-                                this.setState({year: text})
-                            }
-
-                            editable={editing}
-                            defaultValue={vehicle?.year}
-                        />
-                    </CardItem>
-                    <CardItem bordered>
-                        <Input
-                            placeholder='Model'
-                            onChangeText={(text) =>
-                                this.setState({model: text})
-                            }
-
-                            editable={editing}
-                            defaultValue={vehicle?.model}
-                        />
-                    </CardItem>
-
-                </Card>
-                <Card>
-                    <CardItem header>
-                        <H2>Mileage</H2>
-                        {
-                            vehicleId && <Button
-                                small
-                                bordered
-                                onPress={() => {
-                                    ActionSheet.show(
-                                        {
-                                            options: [
-                                                "In 1 minute",
-                                                "In 5 months",
-                                                "Next year",
-                                                "Custom",
-                                                "Cancel"
-                                            ],
-                                            cancelButtonIndex: 3,
-                                            title: "Remind me.."
-                                        },
-                                        buttonIndex => {
-                                            const min1 = new Date(Date.now() + 60 * 1000) // in 60 secs;
-                                            const mon5 = new Date(Date.now() + 13140000 * 1000) // in 60 secs;
-                                            const ny = new Date(Date.now() + 31798835 * 1000) // in 60 secs;
-                                            let ops = [min1, mon5, ny];
-                                            this.setNotification(ops[buttonIndex])
-                                        }
-                                    )
-                                }}
-                            >
-                                <Text>
-                                    Remind me
-                                </Text>
-                            </Button>
-                        }
-                    </CardItem>
-                    <CardItem bordered>
-                        <Input
-                            placeholder={"#"}
-                            keyboardType={"number-pad"}
-                            editable={!vehicleId}
-                            defaultValue={vehicleId ? vehicle?.mileage?.current : "0"}
-                            onChangeText={(text) =>
-                                this.setState({mileageCurrent: text})
-                            }
-                        />
-                    </CardItem>
-                    {
-                        vehicleId && <CardItem>
-                            <Label>
-                                Next reminder:
-                            </Label>
-                            {
-                                this.state.notificationDate &&
-                                    <Text>{moment.unix(parseInt(this.state.notificationDate) / 1000).format("LLL")}</Text>
-                            }
-                        </CardItem>
-                    }
-
-                    <CardItem>
-
-                        {!vehicleId && <Button
-                            large
-                            onPress={this.onSubmit}
-                        >
-                            <Text>Create</Text>
-                        </Button>}
-                    </CardItem>
-                </Card>
+                {this.renderForm()}
+                {this.renderMileage()}
             </Content>
         </Container>
     }

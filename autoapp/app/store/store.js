@@ -43,3 +43,4 @@ export default (initialState = {}) => {
         runSaga: sagaMiddleware.run
     };
 };
+
