@@ -4,7 +4,7 @@ const microValidator = require('micro-validator').default;
 
 export interface MileageData {
     current: string,
-    notificationDate?: string
+    notificationDate?: string | null
 }
 
 export interface VehicleData {

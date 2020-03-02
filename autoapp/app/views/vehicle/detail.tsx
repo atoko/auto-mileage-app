@@ -11,12 +11,9 @@ import {
     H1,
     H2,
     Input,
-    Item,
-    Label,
     Text,
     Toast
 } from "native-base";
-import {Alert, Button as NativeButton} from "react-native";
 import NewVehicle from "../../api/vehicles/new";
 import {getAuth} from "../../store/authorization/reducer";
 import {getVehicleById, getVehicleIsFetching} from "../../store/vehicles/reducer";
@@ -44,7 +41,6 @@ class VehicleForm extends React.Component<any> {
         editingMileage: false,
         year: "",
         make: "",
-        name: "",
         model: "",
         mileageCurrent: "",
         notificationDate: null,
@@ -59,7 +55,7 @@ class VehicleForm extends React.Component<any> {
 
     onSubmit = (event?: any) => {
         const {auth, navigation, loadVehicleToStore} = this.props;
-        const {year, make, model, name, mileageCurrent} = this.state;
+        const {year, make, model, mileageCurrent} = this.state;
 
         this.setState({
             saving: true
@@ -71,7 +67,6 @@ class VehicleForm extends React.Component<any> {
                     year,
                     make,
                     model,
-                    name,
                     mileage: {
                         current: mileageCurrent
                     }
@@ -93,7 +88,7 @@ class VehicleForm extends React.Component<any> {
     };
     onSave = (event?: any) => {
         const {auth, navigation, loadVehicleToStore, route} = this.props;
-        const {year, make, model, name, mileageCurrent} = this.state;
+        const {year, make, model, mileageCurrent} = this.state;
         const {vehicleId} = route?.params;
 
         this.setState({
@@ -107,10 +102,9 @@ class VehicleForm extends React.Component<any> {
                     year,
                     make,
                     model,
-                    name,
                     mileage: {
                         current: mileageCurrent,
-                        notificationDate: this.state.notificationDate as String
+                        notificationDate: this.state.notificationDate
                     }
                 }
             }
@@ -136,13 +130,13 @@ class VehicleForm extends React.Component<any> {
 
     setNotification(notificationDate: Date) {
         const {vehicle, auth} = this.props;
-        const {year, make, model, name, mileageCurrent} = this.state;
+        const {year, make, model, mileageCurrent} = this.state;
 
         PushNotification.localNotificationSchedule({
             id: parseInt(`0x${vehicle.id.slice(0, 8)}`),
             /* iOS and Android properties */
             title: "Mileage alert", // (optional)
-            message: `Check your vehicle ${name}`, // (required)
+            message: `Alert for ${year} ${make} ${model}`, // (required)
             playSound: false, // (optional) default: true
             soundName: 'default', // (optional) Sound to play when the notification is shown. Value of 'default' plays the default sound. It can be set to a custom sound such as 'android.resource://com.xyz/raw/my_sound'. It will look for the 'my_sound' audio file in 'res/raw' directory and play it. default: 'default' (default sound is played),
             userInfo: {
@@ -192,7 +186,6 @@ class VehicleForm extends React.Component<any> {
         this.setState({
             year: vehicle.year,
             make: vehicle.make,
-            name: vehicle.name,
             model: vehicle.model,
             mileageCurrent: vehicle.mileage?.current,
             notificationDate: vehicle.mileage?.notificationDate,
@@ -200,7 +193,7 @@ class VehicleForm extends React.Component<any> {
         })
     }
     onFocus = () => {
-        const {auth, vehicle, fetchVehicle, route} = this.props;
+        const {auth, vehicle, route} = this.props;
         const {vehicleId} = route?.params;
 
         if (auth.ready === true) {
@@ -250,6 +243,12 @@ class VehicleForm extends React.Component<any> {
             this.updateNavigation();
         }
 
+        if (vehicle) {
+            if (this.state.versionKey !== vehicle.versionKey) {
+                this.synchronizeState(vehicle);
+            }
+        }
+
         if (error !== prevError) {
             const {code} = error as any;
             Toast.show({
@@ -263,22 +262,6 @@ class VehicleForm extends React.Component<any> {
         const {vehicle} = this.props;
         const {editing} = this.state;
         return <Card>
-            {editing ?
-                <CardItem bordered>
-                    <Input
-                        placeholder='Name'
-                        onChangeText={(text) =>
-                            this.setState({name: text})
-
-                        }
-                        editable={editing}
-                        defaultValue={vehicle?.name}
-                    />
-                </CardItem> :
-                <CardItem header bordered>
-                    <H1>{vehicle?.name}</H1>
-                </CardItem>
-            }
             <CardItem bordered={editing}>
                 <Input
                     placeholder='Make'
