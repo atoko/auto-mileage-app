@@ -8,11 +8,11 @@ export interface MileageData {
 }
 
 export interface VehicleData {
-    name: string;
     make: string;
     model: string;
     year: string;
     mileage: MileageData;
+    imageData?: string | null;
 }
 
 export interface VehicleRow extends VehicleData {
@@ -23,7 +23,8 @@ export interface VehicleRow extends VehicleData {
 }
 
 export interface VehicleResponse extends VehicleRow {
-
+    imageFull?: string | null;
+    imageThumbnail?: string | null;
 }
 
 export const VehicleRequestValidation = (vehicle: VehicleData) => {

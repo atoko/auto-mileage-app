@@ -1,10 +1,12 @@
 import React from "react";
 import {connect} from "react-redux";
+import {View} from "react-native";
+import {Button, Content, List, ListItem, Spinner, Text} from "native-base";
+
+import ListStyleSheet from "./list.style";
 import {requestProfileFetch} from "../../store/profile/actions";
 import {getAuth} from "../../store/authorization/reducer";
 import {getProfileById} from "../../store/profile/reducer";
-import {ActivityIndicator, View} from "react-native";
-import {Button, Content, List, ListItem, Spinner, Text} from "native-base";
 
 
 class Home extends React.PureComponent<any> {
@@ -55,7 +57,7 @@ class Home extends React.PureComponent<any> {
         const {profile} = this.props;
 
         if (profile === null || profile === undefined) {
-            return <ActivityIndicator/>
+            return <Spinner/>
         }
 
         return <View>
@@ -66,7 +68,18 @@ class Home extends React.PureComponent<any> {
             <List dataArray={Object.values(profile.vehicles)} renderRow={(item) => {
                 let vehicle = item;
                 return <ListItem key={vehicle.id} button onPress={this.selectVehicle(vehicle).bind(this)}>
-                    <Text>{vehicle.name} | {vehicle.year} | {vehicle.make} | {vehicle.model}</Text>
+                    <Text style={ListStyleSheet.rowText}>
+                        {vehicle.year}
+                    </Text>
+                    <Text style={ListStyleSheet.rowText}>
+                        {vehicle.make}
+                    </Text>
+                    <Text style={ListStyleSheet.rowText}>
+                        {vehicle.model}
+                    </Text>
+                    { vehicle.mileage?.current && <Text style={ListStyleSheet.rowText}>
+                        {vehicle.mileage.current}
+                    </Text>}
                 </ListItem>
             }}>
             </List>

@@ -59,6 +59,7 @@ const UpdateVehicle = (request: VehiclePutRequest): Promise<VehiclePutResponse> 
                             error
                         })
                     } else {
+                        console.debug(JSON.stringify(exception));
                         resolve({
                             ...UnknownException(Date.now()),
                             status: 500

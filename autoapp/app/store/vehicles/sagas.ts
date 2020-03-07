@@ -1,6 +1,7 @@
 import {all, call, delay, fork, put, race, take} from "redux-saga/effects";
 import {VEHICLE_FETCH_REQUEST, vehicleFetchErrorAction, vehicleLoadAction, vehicleMileageLoadAction} from "./actions";
-import {readVehicleById, readVehicleMileageById} from "../../components/api/vehicle/dal";
+import {readVehicleById, readVehicleImageById, readVehicleMileageById} from "../../components/api/vehicle/dal";
+import {VehicleNotFoundCode} from "../../components/api/response/vehicle/exception";
 
 const PROFILES_ROOT = `/api/vehicles`;
 export const VEHICLES_GET_BY_PROFILE_ID_ENDPOINT = (id: string) => `${PROFILES_ROOT}/profile/${id}`;
@@ -38,14 +39,48 @@ function* fetchVehicleById(ids: string[]) {
         if (Array.isArray(vehicles) && vehicles.length > 0) {
             for (let i =  0; i < vehicles.length; i++) {
                 let vehicleMileage = yield call(readVehicleMileageById, vehicles[i].id);
-                console.debug("[vehicle/saga] loaded", vehicleMileage, "mileage");
-                yield put(vehicleLoadAction({ ...vehicles[i], vehicleMileage }));
+                console.debug("[vehicle/saga] loaded mileage", vehicleMileage);
+
+                let imageFull = null;
+                try {
+                    imageFull = yield call(readVehicleImageById, vehicles[i].id);
+                    console.debug("[vehicle/saga] loaded image", imageFull.slice(0, 32));
+                } catch(e) {
+                    const {error} = e;
+                    if (error) {
+                        const {code} = error;
+                        if (code !== VehicleNotFoundCode) {
+                            console.error(e)
+                        }
+                    } else {
+                        console.error(e)
+                    }
+                }
+
+                yield put(vehicleLoadAction({ ...vehicles[i], vehicleMileage, imageFull }));
             }
         } else {
             if (vehicles) {
                 let vehicleMileage = yield call(readVehicleMileageById, vehicles.id);
-                console.debug("[vehicle/saga] loaded", vehicleMileage, "mileage");
-                yield put(vehicleLoadAction({ ...vehicles, vehicleMileage }));
+                console.debug("[vehicle/saga] loaded mileage", vehicleMileage);
+
+                let imageFull = null;
+                try {
+                    imageFull = yield call(readVehicleImageById, vehicles.id);
+                    console.debug("[vehicle/saga] loaded image", imageFull.slice(0, 32));
+                } catch(e) {
+                    const {error} = e;
+                    if (error) {
+                        const {code} = error;
+                        if (code !== VehicleNotFoundCode) {
+                            console.error(e)
+                        }
+                    } else {
+                        console.error(e)
+                    }
+                }
+
+                yield put(vehicleLoadAction({ ...vehicles, vehicleMileage, imageFull }));
             }
         }
     } catch(e) {

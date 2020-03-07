@@ -1,18 +1,18 @@
 import React from 'react';
 import {connect} from "react-redux";
 import PushNotification from "react-native-push-notification";
+import ImagePicker from "react-native-image-picker";
 import {
-    ActionSheet,
+    ActionSheet, Body,
     Button,
     Card,
     CardItem,
     Container,
     Content,
-    H1,
     H2,
     Input,
     Text,
-    Toast
+    Toast, View
 } from "native-base";
 import NewVehicle from "../../api/vehicles/new";
 import {getAuth} from "../../store/authorization/reducer";
@@ -22,15 +22,10 @@ import {VehicleResponse} from "../../components/api/vehicle/dto";
 import UpdateVehicle, {VehiclePutResponse} from "../../api/vehicles/update";
 
 import moment from "moment";
+import {Dimensions, Image} from "react-native";
+import {UpdateVehicleImageData} from "../../api/vehicles/imageData/put";
 
-function strToUtf16Bytes(str: string) {
-    const bytes = [];
-    for (let ii = 0; ii < str.length; ii++) {
-        const code = str.charCodeAt(ii); // x00-xFFFF
-        bytes.push(code & 255, code >> 8); // low, high
-    }
-    return bytes;
-}
+const BASE_64_IMAGE = (data: string) => `data:image/jpeg;base64,${data}`;
 
 class VehicleForm extends React.Component<any> {
     state = {
@@ -44,6 +39,8 @@ class VehicleForm extends React.Component<any> {
         model: "",
         mileageCurrent: "",
         notificationDate: null,
+        imageData: null,
+        imageFull: null,
         versionKey: null
     };
     mileageCurrentInput = React.createRef();
@@ -55,7 +52,7 @@ class VehicleForm extends React.Component<any> {
 
     onSubmit = (event?: any) => {
         const {auth, navigation, loadVehicleToStore} = this.props;
-        const {year, make, model, mileageCurrent} = this.state;
+        const {year, make, model, mileageCurrent, imageData} = this.state;
 
         this.setState({
             saving: true
@@ -69,7 +66,8 @@ class VehicleForm extends React.Component<any> {
                     model,
                     mileage: {
                         current: mileageCurrent
-                    }
+                    },
+                    imageData
                 }
             }
         ).then((vehicle) => {
@@ -127,14 +125,49 @@ class VehicleForm extends React.Component<any> {
             }
         });
     };
-
+    onUploadImage() {
+        const {auth, navigation, loadVehicleToStore, route} = this.props;
+        const {imageData, imageFull} = this.state;
+        const {vehicleId} = route?.params;
+        if (vehicleId) {
+            this.setState({
+                saving: true
+            });
+            UpdateVehicleImageData(
+                {
+                    authentication: auth.token,
+                    vehicleId,
+                    body: {
+                        imageData: imageFull
+                    }
+                }
+            ).then((vehicle: VehiclePutResponse) => {
+                if (vehicle.data) {
+                    const {vehicles} = vehicle.data;
+                    const {id: vehicleId} = vehicles;
+                    loadVehicleToStore(vehicles);
+                    this.loadVehicle(vehicleId);
+                    this.setState({
+                        error: null,
+                        saving: false,
+                        editing: false
+                    })
+                } else {
+                    this.setState({
+                        error: vehicle.error,
+                        saving: false
+                    })
+                }
+            });
+        }
+    }
     setNotification(notificationDate: Date) {
         const {vehicle, auth} = this.props;
         const {year, make, model, mileageCurrent} = this.state;
+        const notificationId = parseInt(`0x${vehicle.id.slice(0, 8)}`);
 
         PushNotification.localNotificationSchedule({
-            id: parseInt(`0x${vehicle.id.slice(0, 8)}`),
-            /* iOS and Android properties */
+            id: notificationId as unknown as string,
             title: "Mileage alert", // (optional)
             message: `Alert for ${year} ${make} ${model}`, // (required)
             playSound: false, // (optional) default: true
@@ -150,6 +183,30 @@ class VehicleForm extends React.Component<any> {
         this.setState({
             notificationDate: notificationDate.getTime()
         }, this.onSave)
+    }
+
+    displayImagePicker() {
+        const options = {
+            title: 'Select Image',
+            storageOptions: {
+                skipBackup: true
+            },
+        };
+
+        ImagePicker.showImagePicker(options, (response) => {
+            if (response.didCancel) {
+                return;
+            } else if (response.error) {
+                console.error('ImagePicker Error: ', response.error);
+                return;
+            } else {
+                //
+
+                this.setState({
+                    imageFull: response.data,
+                }, this.onUploadImage);
+            }
+        });
     }
 
     loadVehicle(vehicleId: string) {
@@ -183,16 +240,19 @@ class VehicleForm extends React.Component<any> {
     }
 
     synchronizeState(vehicle: VehicleResponse) {
+        console.info("[vehicle/detail] image obtained", vehicle.imageFull?.slice(0, 10));
         this.setState({
             year: vehicle.year,
             make: vehicle.make,
             model: vehicle.model,
             mileageCurrent: vehicle.mileage?.current,
             notificationDate: vehicle.mileage?.notificationDate,
+            imageData: vehicle.imageData,
+            imageFull: vehicle.imageFull,
             versionKey: vehicle.versionKey
         })
     }
-    onFocus = () => {
+    componentDidFocus = () => {
         const {auth, vehicle, route} = this.props;
         const {vehicleId} = route?.params;
 
@@ -213,13 +273,13 @@ class VehicleForm extends React.Component<any> {
     componentDidMount() {
         const {navigation} = this.props;
         if (navigation) {
-            navigation.addListener('focus', this.onFocus);
+            navigation.addListener('focus', this.componentDidFocus);
         }
     }
     componentWillUnmount() {
         const {navigation} = this.props;
         if (navigation) {
-            navigation.removeListener('focus', this.onFocus)
+            navigation.removeListener('focus', this.componentDidFocus)
         }
     }
 
@@ -247,16 +307,36 @@ class VehicleForm extends React.Component<any> {
             if (this.state.versionKey !== vehicle.versionKey) {
                 this.synchronizeState(vehicle);
             }
+
+            if (this.state.imageFull !== vehicle.imageFull) {
+                this.synchronizeState(vehicle)
+            }
         }
 
         if (error !== prevError) {
             const {code} = error as any;
             Toast.show({
-                text: `${code} ${(error as any)?.rootCauses.map((rc: any) => rc.code)}`,
+                text: `${code} ${(error as any)?.rootCauses?.map((rc: any) => rc?.code)}`,
                 type: "danger"
             })
         }
 
+    }
+    renderImage() {
+        const {imageFull} = this.state;
+        const {width} = Dimensions.get("window");
+        return <View>
+            {imageFull !== null && <Image
+                style={{width, height: width / 2, resizeMode: 'center'}}
+                source={{uri: BASE_64_IMAGE(imageFull as unknown as string)} }
+            /> }
+            {imageFull === null && <View
+                style={{width, height: width / 2, backgroundColor: '#cccccc'}}
+            />}
+            <Button onPress={this.displayImagePicker.bind(this)}>
+                <Text>Upload</Text>
+            </Button>
+        </View>
     }
     renderForm() {
         const {vehicle} = this.props;
@@ -361,7 +441,7 @@ class VehicleForm extends React.Component<any> {
                             editable={false}
                         >
                             <Text>
-                                {moment.unix(parseInt(this.state.notificationDate) / 1000).format("ll")}
+                                {moment.unix(parseInt(this.state.notificationDate as unknown as string) / 1000).format("ll")}
                             </Text>
                         </Input>
                     }
@@ -373,7 +453,7 @@ class VehicleForm extends React.Component<any> {
                     keyboardType={"number-pad"}
                     editable={!vehicleId || editing}
                     ref={this.mileageCurrentInput}
-                    defaultValue={vehicleId ? vehicle?.mileage?.current : "0"}
+                    defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
                     onChangeText={(text) =>
                         this.setState({mileageCurrent: text})
                     }
@@ -417,6 +497,7 @@ class VehicleForm extends React.Component<any> {
     render() {
         return <Container>
             <Content>
+                {this.renderImage()}
                 {this.renderForm()}
                 {this.renderMileage()}
             </Content>
@@ -435,7 +516,7 @@ const mapStateToProps = (state: any, props: any) => {
     }
 };
 const mapDispatchToProps = (dispatch: (action: any) => {}) => ({
-    fetchVehicle: (id: String) => dispatch(requestVehicleFetch(id)),
+    fetchVehicle: (id: string) => dispatch(requestVehicleFetch(id)),
     loadVehicleToStore: (vehicle: any) => dispatch(vehicleLoadAction(vehicle))
 });
 export default connect(mapStateToProps, mapDispatchToProps)(VehicleForm);

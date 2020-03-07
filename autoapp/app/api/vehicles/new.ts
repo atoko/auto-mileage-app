@@ -49,8 +49,11 @@ const NewVehicle = (request: VehiclePostRequest): Promise<VehiclePostResponse> =
                         })
                     })
                 }).catch((exception) => {
+                    console.error(exception);
+
                     let {error} = exception;
                     let {code, reason} = error || {code: null, reason: null};
+
 
                     if (code && reason) {
                         resolve({
