@@ -3,7 +3,7 @@ import {connect} from "react-redux";
 import PushNotification from "react-native-push-notification";
 import ImagePicker from "react-native-image-picker";
 import {
-    ActionSheet, Body,
+    ActionSheet,
     Button,
     Card,
     CardItem,

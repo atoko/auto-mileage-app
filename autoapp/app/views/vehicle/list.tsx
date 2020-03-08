@@ -1,6 +1,6 @@
 import React from "react";
 import {connect} from "react-redux";
-import {View} from "react-native";
+import {Image, View} from "react-native";
 import {Button, Content, List, ListItem, Spinner, Text} from "native-base";
 
 import ListStyleSheet from "./list.style";
@@ -8,6 +8,7 @@ import {requestProfileFetch} from "../../store/profile/actions";
 import {getAuth} from "../../store/authorization/reducer";
 import {getProfileById} from "../../store/profile/reducer";
 
+const BASE_64_IMAGE = (data: string) => `data:image/jpeg;base64,${data}`;
 
 class Home extends React.PureComponent<any> {
 
@@ -67,22 +68,38 @@ class Home extends React.PureComponent<any> {
             {/*<Text>customer.home.vehicles</Text>*/}
             <List dataArray={Object.values(profile.vehicles)} renderRow={(item) => {
                 let vehicle = item;
+                const width = 64;
+                const {imageThumbnail} = vehicle;
+                console.log(imageThumbnail);
                 return <ListItem key={vehicle.id} button onPress={this.selectVehicle(vehicle).bind(this)}>
-                    <View>
+                    <View style={{flex: 1, flexDirection: "row", justifyContent:"space-between"}}>
+                        <View>
+                            {imageThumbnail !== null && imageThumbnail !== undefined && <Image
+                                style={{width, height: width, resizeMode: 'center'}}
+                                source={{uri: BASE_64_IMAGE(imageThumbnail as unknown as string)} }
+                            /> }
+                            {imageThumbnail === null || imageThumbnail === undefined && <View
+                                style={{width, height: width, backgroundColor: '#888888'}}
+                            />}
+                        </View>
+                        <View>
+                            <View style={{flex: 1, flexDirection:"row", justifyContent:"space-between"}}>
+                                <Text style={ListStyleSheet.rowText}>
+                                    {vehicle.make}
+                                </Text>
+                                <Text style={ListStyleSheet.rowText}>
+                                    {vehicle.model}
+                                </Text>
+                                <Text style={ListStyleSheet.rowText}>
+                                    {vehicle.year}
+                                </Text>
+                            </View>
 
+                            <View style={{flex: 1, flexDirection:"row", justifyContent:"space-between"}}>
+
+                            </View>
+                        </View>
                     </View>
-                    <Text style={ListStyleSheet.rowText}>
-                        {vehicle.year}
-                    </Text>
-                    <Text style={ListStyleSheet.rowText}>
-                        {vehicle.make}
-                    </Text>
-                    <Text style={ListStyleSheet.rowText}>
-                        {vehicle.model}
-                    </Text>
-                    { vehicle.mileage?.current && <Text style={ListStyleSheet.rowText}>
-                        {vehicle.mileage.current}
-                    </Text>}
                 </ListItem>
             }}>
             </List>
