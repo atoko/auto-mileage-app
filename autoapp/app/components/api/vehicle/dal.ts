@@ -237,13 +237,14 @@ export const readVehiclesByProfileId = async (profileId : string) : Promise<Arra
             let vehicleIds = JSON.parse(profileIndex);
             const vehicles = await VehicleStorage.getMultiple(vehicleIds.map(VEHICLE_ID));
             const vehicleThumbnails = await VehicleStorage.getMultiple(vehicleIds.map(VEHICLE_THUMBNAIL));
+
             if (vehicles !== null) {
                 return resolve(Object.values(vehicles).filter((v: any) => v != null).map((v: any) => {
                     const vehicleData = JSON.parse(v);
                     const {id: vehicleId} = vehicleData;
                     let imageThumbnail = null;
-                    if (vehicleThumbnails[vehicleId]) {
-                        imageThumbnail = vehicleThumbnails[vehicleId]
+                    if (vehicleThumbnails[VEHICLE_THUMBNAIL(vehicleId)]) {
+                        imageThumbnail = vehicleThumbnails[VEHICLE_THUMBNAIL(vehicleId)]
                     }
                     return { ...vehicleData, imageThumbnail }
                 }))

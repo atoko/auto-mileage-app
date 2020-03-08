@@ -2,7 +2,6 @@ import AsyncStorageFactory from '@react-native-community/async-storage';
 import LegacyStorage from '@react-native-community/async-storage-backend-legacy';
 import {ProfileRow, ProfileVehicleRow} from "./profile/dto";
 import {VehicleRow} from "./vehicle/dto";
-import NewVehicle from "../../api/vehicles/new";
 
 const legacyStorage = new LegacyStorage();
 
@@ -11,7 +10,9 @@ export const ProfileVehicleIndexStorage = AsyncStorageFactory.create<ProfileVehi
 export const VehicleStorage =  AsyncStorageFactory.create<VehicleRow>(legacyStorage);
 
 const INIT_FLAG = "_FLAG_INITIALIZED";
-setTimeout(async () => {
+export const InitializeVehicleStorage = async () => {
+    //Importing api routes this early in the graph generates an error
+    const NewVehicle = require("../../api/vehicles/new").default;
     let isInitialized = await VehicleStorage.get(INIT_FLAG);
     isInitialized = JSON.parse(isInitialized);
     if (isInitialized == null) {
@@ -28,4 +29,4 @@ setTimeout(async () => {
         });
         await VehicleStorage.set(INIT_FLAG, "true");
     }
-}, 500);
+};

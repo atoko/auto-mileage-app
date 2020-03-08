@@ -309,7 +309,9 @@ class VehicleForm extends React.Component<any> {
             }
 
             if (this.state.imageFull !== vehicle.imageFull) {
-                this.synchronizeState(vehicle)
+                if (vehicle.imageFull) {
+                    this.synchronizeState(vehicle)
+                }
             }
         }
 

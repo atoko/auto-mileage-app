@@ -70,7 +70,6 @@ class Home extends React.PureComponent<any> {
                 let vehicle = item;
                 const width = 64;
                 const {imageThumbnail} = vehicle;
-                console.log(imageThumbnail);
                 return <ListItem key={vehicle.id} button onPress={this.selectVehicle(vehicle).bind(this)}>
                     <View style={{flex: 1, flexDirection: "row", justifyContent:"space-between"}}>
                         <View>
