@@ -16,6 +16,7 @@ interface WithStore {
 enableScreens();
 enableNotifications();
 
+
 const App: (props: WithStore) => React.ReactNode = ({store}) => {
     return (
         <NavigationContainer>

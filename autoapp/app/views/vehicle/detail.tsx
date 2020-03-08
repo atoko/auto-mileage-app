@@ -52,7 +52,7 @@ class VehicleForm extends React.Component<any> {
 
     onSubmit = (event?: any) => {
         const {auth, navigation, loadVehicleToStore} = this.props;
-        const {year, make, model, mileageCurrent, imageData} = this.state;
+        const {year, make, model, mileageCurrent, imageFull} = this.state;
 
         this.setState({
             saving: true
@@ -67,7 +67,7 @@ class VehicleForm extends React.Component<any> {
                     mileage: {
                         current: mileageCurrent
                     },
-                    imageData
+                    imageData: imageFull
                 }
             }
         ).then((vehicle) => {

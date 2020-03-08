@@ -189,6 +189,29 @@ export const readVehicleImageById = async (id : string) : Promise<string> => {
     }
 };
 
+export const readVehicleThumbnailById = async (ids : string[]) : Promise<string> => {
+    try {
+        const vehicleImage = await VehicleStorage.getMultiple(ids.map(VEHICLE_IMAGE));
+        if (vehicleImage != null) {
+            return vehicleImage.filter((v: any) => v != null);
+        } else {
+            throw VehicleNotFound(Date.now())
+        }
+    }
+    catch(e) {
+        const {error} = e;
+        if (error) {
+            const {code} = error;
+            if (code !== VehicleNotFoundCode) {
+                console.error(`[vehicle/api/dal] ${JSON.stringify(e)}`)
+            }
+        } else {
+            console.error(`[vehicle/api/dal] ${JSON.stringify(e)}`)
+        }
+        throw e;
+    }
+};
+
 
 export const readVehicleMileageById = async (id : string) : Promise<MileageData[]> => {
     try {
@@ -207,22 +230,30 @@ export const readVehicleMileageById = async (id : string) : Promise<MileageData[
 };
 
 
-export const readVehiclesByProfileId = (profileId : string) : Promise<Array<VehicleRow|null>> => {
-    return new Promise((resolve, reject) => {
-        return ProfileVehicleIndexStorage.get(PROFILE_VEHICLE(profileId)).then((profileIndex : string | null) => {
-            if (profileIndex != null) {
-                let vehicleIds = JSON.parse(profileIndex);
-                return VehicleStorage.getMultiple(vehicleIds.map(VEHICLE_ID)).then((vehicles : VehicleRow[] | null) => {
-                    if (vehicles !== null) {
-                        return resolve(Object.values(vehicles).filter((v: any) => v != null).map((v: any) => JSON.parse(v)))
-                    } else {
-                        return reject(VehicleNotFound(Date.now()))
+export const readVehiclesByProfileId = async (profileId : string) : Promise<Array<VehicleRow|null>> => {
+    return new Promise(async (resolve, reject) => {
+        const profileIndex = await ProfileVehicleIndexStorage.get(PROFILE_VEHICLE(profileId));
+        if (profileIndex != null) {
+            let vehicleIds = JSON.parse(profileIndex);
+            const vehicles = await VehicleStorage.getMultiple(vehicleIds.map(VEHICLE_ID));
+            const vehicleThumbnails = await VehicleStorage.getMultiple(vehicleIds.map(VEHICLE_THUMBNAIL));
+            if (vehicles !== null) {
+                return resolve(Object.values(vehicles).filter((v: any) => v != null).map((v: any) => {
+                    const vehicleData = JSON.parse(v);
+                    const {id: vehicleId} = vehicleData;
+                    let imageThumbnail = null;
+                    if (vehicleThumbnails[vehicleId]) {
+                        imageThumbnail = vehicleThumbnails[vehicleId]
                     }
-                })
+                    return { ...vehicleData, imageThumbnail }
+                }))
             } else {
-                return reject(ProfileNotFound(Date.now()))
+                return reject(VehicleNotFound(Date.now()))
             }
-        })
+        } else {
+            return reject(ProfileNotFound(Date.now()))
+        }
+
     })
 };
 
