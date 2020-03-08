@@ -256,4 +256,3 @@ export const readVehiclesByProfileId = async (profileId : string) : Promise<Arra
 
     })
 };
-

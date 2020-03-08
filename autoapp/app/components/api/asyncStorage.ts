@@ -11,7 +11,7 @@ export const ProfileVehicleIndexStorage = AsyncStorageFactory.create<ProfileVehi
 export const VehicleStorage =  AsyncStorageFactory.create<VehicleRow>(legacyStorage);
 
 const INIT_FLAG = "_FLAG_INITIALIZED";
-(async () => {
+setTimeout(async () => {
     let isInitialized = await VehicleStorage.get(INIT_FLAG);
     isInitialized = JSON.parse(isInitialized);
     if (isInitialized == null) {
@@ -28,4 +28,4 @@ const INIT_FLAG = "_FLAG_INITIALIZED";
         });
         await VehicleStorage.set(INIT_FLAG, "true");
     }
-})();
+}, 500);

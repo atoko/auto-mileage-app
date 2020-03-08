@@ -68,6 +68,9 @@ class Home extends React.PureComponent<any> {
             <List dataArray={Object.values(profile.vehicles)} renderRow={(item) => {
                 let vehicle = item;
                 return <ListItem key={vehicle.id} button onPress={this.selectVehicle(vehicle).bind(this)}>
+                    <View>
+
+                    </View>
                     <Text style={ListStyleSheet.rowText}>
                         {vehicle.year}
                     </Text>
