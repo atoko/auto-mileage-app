@@ -11,7 +11,8 @@ export const Navigation = () =>
                     name="Vehicle/List"
                     component={VehicleViews.list}
                     options={{
-                        title: "Vehicles"
+                        headerTitle: " Vehicle List",
+                        headerShown: true,
                     }}
                 />
                 <Stack.Screen

@@ -9,7 +9,7 @@ import {
     CardItem,
     Container,
     Content,
-    H2,
+    H2, Icon,
     Input, Picker,
     Text,
     Toast, View
@@ -165,6 +165,32 @@ class VehicleForm extends React.Component<any> {
             });
         }
     }
+    showNotificationDialog() {
+        ActionSheet.show(
+            {
+                options: [
+                    "In 3 months",
+                    "In 6 months",
+                    "Next year",
+                    "Custom",
+                    "Cancel"
+                ],
+                cancelButtonIndex: 4,
+                title: "Remind me.."
+            },
+            buttonIndex => {
+                const min1 = new Date(Date.now() + 60 * 1000) // in 60 secs;
+                const mon5 = new Date(Date.now() + 13140000 * 1000) // in 60 secs;
+                const ny = new Date(Date.now() + 31798835 * 1000) // in 60 secs;
+                let ops = [min1, mon5, ny];
+                if (buttonIndex < 3) {
+                    this.setNotification(ops[buttonIndex])
+                } else if(buttonIndex === 4) {
+
+                } else {}
+            }
+        )
+    }
     setNotification(notificationDate: Date) {
         const {vehicle, auth} = this.props;
         const {year, make, model, mileageCurrent} = this.state;
@@ -225,14 +251,19 @@ class VehicleForm extends React.Component<any> {
         if (versionKey !== null) {
             navigation.setOptions({
                 headerRight: () => (
-                    <Button transparent onPress={() => {
-                        if (!editing) {
-                            this.setState({
-                                editing: true
-                            })
-                        } else {
-                            this.onSave();
-                        }
+                    <Button
+                        transparent={!editing}
+                        style={{
+                            marginRight: 8
+                        }}
+                        onPress={() => {
+                            if (!editing) {
+                                this.setState({
+                                    editing: true
+                                })
+                            } else {
+                                this.onSave();
+                            }
                     }}>
                         <Text>
                             {!editing ? "Edit" : "Save"}
@@ -350,77 +381,85 @@ class VehicleForm extends React.Component<any> {
         const {width} = Dimensions.get("window");
         const haveImage = imageFull !== null && imageFull !== undefined;
 
-        return <TouchableOpacity onPress={this.displayImagePicker.bind(this)}>
-            {haveImage && <Image
-                style={{width, height: width / 2, resizeMode: 'center'}}
-                source={{uri: BASE_64_IMAGE(imageFull as unknown as string)} }
-            /> }
-            {!haveImage && <View
-                style={{width, height: width / 2, backgroundColor: '#bababa'}}
-            />}
-        </TouchableOpacity>
+        return <Card style={{
+            padding: 8
+        }}>
+            <TouchableOpacity onPress={this.displayImagePicker.bind(this)}>
+                {haveImage && <Image
+                    style={{width: width - 20, height: width / 2, resizeMode: 'cover'}}
+                    source={{uri: BASE_64_IMAGE(imageFull as unknown as string)} }
+                /> }
+                {!haveImage && <View
+                    style={{width: width - 20, height: width / 2, backgroundColor: '#bababa'}}
+                />}
+            </TouchableOpacity>
+        </Card>
     }
     renderForm() {
         const {vehicle} = this.props;
         const {editing} = this.state;
         return <Card>
-            <CardItem bordered={editing} header={true}>
-                <View style={{flex: 1, flexDirection: "row"}}>
-                    <Picker
-                        placeholder='Year'
-                        onValueChange={(year) => {
-                            this.setState({year}, () => {
-                                getMakesByYear(year).then((makes) => {
-                                    let {make} = this.state;
-                                    if (makes.indexOf(make) === -1) {
-                                        make = makes[0];
-                                    }
-                                    this.setState({ makes, make });
-                                })
+            <CardItem>
+                <Picker
+                    placeholder='Year'
+                    onValueChange={(year) => {
+                        this.setState({year}, () => {
+                            getMakesByYear(year).then((makes) => {
+                                let {make} = this.state;
+                                if (makes.indexOf(make) === -1) {
+                                    make = makes[0];
+                                }
+                                this.setState({ makes, make });
                             })
-                        }}
-                        enabled={editing}
-                        selectedValue={this.state.year}
-                        mode={"dropdown"}
-                    >
-                        {CAR_YEARS.map((y) => {
-                            return <Picker.Item key={y} label={y} value={y}/>
-                        })}
-                    </Picker>
-                    <Picker
-                        placeholder='Make'
-                        onValueChange={(make) => {
-                            this.setState({make}, () => {
-                                getModelsByYearAndMake(this.state.year, make).then((models) => {
-                                    this.setState({ models, model: models[0] });
-                                })
+                        })
+                    }}
+                    enabled={editing}
+                    selectedValue={this.state.year}
+                    mode={"dropdown"}
+                >
+                    {CAR_YEARS.map((y) => {
+                        return <Picker.Item key={y} label={y} value={y}/>
+                    })}
+                </Picker>
+                <Picker
+                    placeholder='Make'
+                    onValueChange={(make) => {
+                        this.setState({make}, () => {
+                            getModelsByYearAndMake(this.state.year, make).then((models) => {
+                                this.setState({ models, model: models[0] });
                             })
-                        }}
-                        enabled={editing}
-                        selectedValue={this.state.make}
-                    >
-                        { this.state.makes?.map((make) => {
-                            return <Picker.Item key={make} label={make} value={make} />
-                        })}
-                    </Picker>
-                    <Picker
-                        placeholder='Model'
-                        onValueChange={(model) => {
-                            this.setState({model}, () => {
+                        })
+                    }}
+                    enabled={editing}
+                    selectedValue={this.state.make}
+                >
+                    { this.state.makes?.map((make) => {
+                        return <Picker.Item key={make} label={make} value={make} />
+                    })}
+                </Picker>
+            </CardItem>
+            <CardItem>
+                <Picker
+                    placeholder='Model'
+                    onValueChange={(model) => {
+                        this.setState({model}, () => {
 
-                            })
-                        }}
-                        enabled={editing}
-                        selectedValue={this.state.model}
-                    >
-                        { this.state.models?.map((model) => {
-                            return <Picker.Item key={model} label={model} value={model} />
-                        })}
-                    </Picker>
-                </View>
+                        })
+                    }}
+                    enabled={editing}
+                    selectedValue={this.state.model}
+                >
+                    { this.state.models?.map((model) => {
+                        return <Picker.Item key={model} label={model} value={model} />
+                    })}
+                </Picker>
+
             </CardItem>
         </Card>
     }
+    renderDatePicker() {
+
+    };
     renderMileage() {
         const {vehicleId} = this.props.route?.params || {};
         const {vehicle = {}} = this.props;
@@ -431,44 +470,39 @@ class VehicleForm extends React.Component<any> {
 
         return <Card>
             <CardItem header bordered>
+                <Icon name={"speedometer"} type={"MaterialCommunityIcons"}></Icon>
                 <Input
                     editable={false}
                 >
                     <H2>Mileage</H2>
                 </Input>
+                <View>
+
+
+                </View>
+                <Input
+                    placeholder={"#"}
+                    keyboardType={"number-pad"}
+                    editable={!vehicleId || editing}
+                    ref={this.mileageCurrentInput}
+                    defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
+                    onChangeText={(text) =>
+                        this.setState({mileageCurrent: text})
+                    }
+                />
+            </CardItem>
+            <CardItem bordered>
+                <Input editable={false}>
+                    Last updated:
+                </Input>
                 {
-                    vehicleId && <Button
-                        small
-                        bordered
-                        onPress={() => {
-                            ActionSheet.show(
-                                {
-                                    options: [
-                                        "In 1 minute",
-                                        "In 5 months",
-                                        "Next year",
-                                        "Custom",
-                                        "Cancel"
-                                    ],
-                                    cancelButtonIndex: 3,
-                                    title: "Remind me.."
-                                },
-                                buttonIndex => {
-                                    const min1 = new Date(Date.now() + 60 * 1000) // in 60 secs;
-                                    const mon5 = new Date(Date.now() + 13140000 * 1000) // in 60 secs;
-                                    const ny = new Date(Date.now() + 31798835 * 1000) // in 60 secs;
-                                    let ops = [min1, mon5, ny];
-                                    if (buttonIndex < 3) {
-                                        this.setNotification(ops[buttonIndex])
-                                    }
-                                }
-                            )
-                        }}
+                    vehicleId && lastMileage && <Input
+                        editable={false}
                     >
                         <Text>
-                            Remind me
+                            {moment.unix(parseInt(lastMileage.created) / 1000).format("lll")}
                         </Text>
-                    </Button>
+                    </Input>
                 }
             </CardItem>
             {
@@ -490,42 +524,6 @@ class VehicleForm extends React.Component<any> {
                     }
                 </CardItem>
             }
-            <CardItem>
-                <Input
-                    placeholder={"#"}
-                    keyboardType={"number-pad"}
-                    editable={!vehicleId || editing}
-                    ref={this.mileageCurrentInput}
-                    defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
-                    onChangeText={(text) =>
-                        this.setState({mileageCurrent: text})
-                    }
-                />
-                {
-                    vehicleId && lastMileage && <Input
-                        editable={false}
-                    >
-                        <Text>
-                            {moment.unix(parseInt(lastMileage.created) / 1000).format("lll")}
-                        </Text>
-                    </Input>
-                }
-                {/*{*/}
-                {/*    vehicleId && false && <Button*/}
-                {/*        small*/}
-                {/*        bordered*/}
-                {/*        onPress={() => {*/}
-                {/*            this.setState({*/}
-                {/*                editingMileage: !editingMileage*/}
-                {/*            });*/}
-                {/*        }}*/}
-                {/*    >*/}
-                {/*        <Text>*/}
-                {/*            +*/}
-                {/*        </Text>*/}
-                {/*    </Button>*/}
-                {/*}*/}
-            </CardItem>
             <CardItem>
 
                 {!vehicleId && <Button

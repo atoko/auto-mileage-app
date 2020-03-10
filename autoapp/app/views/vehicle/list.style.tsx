@@ -5,7 +5,9 @@ const ListStyleSheet = StyleSheet.create({
     },
     rowContainer: {
         paddingTop: 8,
-        paddingBottom: 8
+        paddingBottom: 8,
+        paddingLeft: 8,
+        marginLeft: 0
     },
     rowText: {
         fontSize: 14,
