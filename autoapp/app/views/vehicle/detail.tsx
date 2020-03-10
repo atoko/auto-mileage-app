@@ -10,21 +10,25 @@ import {
     Container,
     Content,
     H2,
-    Input,
+    Input, Picker,
     Text,
     Toast, View
 } from "native-base";
+import moment from "moment";
+import {Dimensions, Image, TouchableOpacity} from "react-native";
+
 import NewVehicle from "../../api/vehicles/new";
+import UpdateVehicle, {VehiclePutResponse} from "../../api/vehicles/update";
+import {UpdateVehicleImageData} from "../../api/vehicles/imageData/put";
+import {VehicleResponse} from "../../components/api/vehicle/dto";
+
+import {getMakesByYear, getModelsByYearAndMake} from "../../api/cars/query";
+
 import {getAuth} from "../../store/authorization/reducer";
 import {getVehicleById, getVehicleIsFetching} from "../../store/vehicles/reducer";
 import {requestVehicleFetch, vehicleLoadAction} from "../../store/vehicles/actions";
-import {VehicleResponse} from "../../components/api/vehicle/dto";
-import UpdateVehicle, {VehiclePutResponse} from "../../api/vehicles/update";
 
-import moment from "moment";
-import {Dimensions, Image} from "react-native";
-import {UpdateVehicleImageData} from "../../api/vehicles/imageData/put";
-
+const CAR_YEARS = [...Array(25).keys()].map(y => (2020 - y).toString());
 const BASE_64_IMAGE = (data: string) => `data:image/jpeg;base64,${data}`;
 
 class VehicleForm extends React.Component<any> {
@@ -251,6 +255,12 @@ class VehicleForm extends React.Component<any> {
             imageFull: vehicle.imageFull,
             versionKey: vehicle.versionKey
         })
+
+        getMakesByYear(vehicle.year).then(async (makes) => {
+            this.setState({ makes });
+            const models = await getModelsByYearAndMake(this.state.year, vehicle.make);
+            this.setState({ models });
+        }).catch(() => {})
     }
     componentDidFocus = () => {
         const {auth, vehicle, route} = this.props;
@@ -260,9 +270,20 @@ class VehicleForm extends React.Component<any> {
             if (vehicleId) {
                 this.loadVehicle(vehicleId);
             } else {
+                const year = CAR_YEARS[Math.floor(Math.random() * CAR_YEARS.length)];
                 this.setState({
-                    editing: true
+                    editing: true,
+                    year
                 });
+
+                getMakesByYear(year).then(async (makes) => {
+                    const make = makes[Math.floor(Math.random() * makes.length)];
+                    this.setState({ makes, make });
+
+                    const models = await getModelsByYearAndMake(year, make);
+                    const model = models[Math.floor(Math.random() * models.length)];
+                    this.setState({ models, model});
+                }).catch(() => {})
             }
         }
 
@@ -327,57 +348,73 @@ class VehicleForm extends React.Component<any> {
     renderImage() {
         const {imageFull} = this.state;
         const {width} = Dimensions.get("window");
-        return <View>
-            {imageFull !== null && <Image
+        const haveImage = imageFull !== null && imageFull !== undefined;
+
+        return <TouchableOpacity onPress={this.displayImagePicker.bind(this)}>
+            {haveImage && <Image
                 style={{width, height: width / 2, resizeMode: 'center'}}
                 source={{uri: BASE_64_IMAGE(imageFull as unknown as string)} }
             /> }
-            {imageFull === null && <View
-                style={{width, height: width / 2, backgroundColor: '#cccccc'}}
+            {!haveImage && <View
+                style={{width, height: width / 2, backgroundColor: '#bababa'}}
             />}
-            <Button onPress={this.displayImagePicker.bind(this)}>
-                <Text>Upload</Text>
-            </Button>
-        </View>
+        </TouchableOpacity>
     }
     renderForm() {
         const {vehicle} = this.props;
         const {editing} = this.state;
         return <Card>
-            <CardItem bordered={editing}>
-                <Input
-                    placeholder='Make'
-                    onChangeText={(text) =>
-                        this.setState({make: text})
-                    }
+            <CardItem bordered={editing} header={true}>
+                <View style={{flex: 1, flexDirection: "row"}}>
+                    <Picker
+                        placeholder='Year'
+                        onValueChange={(year) => {
+                            this.setState({year}, () => {
+                                getMakesByYear(year).then((makes) => {
+                                    this.setState({ makes });
+                                })
+                            })
+                        }}
+                        enabled={editing}
+                        selectedValue={this.state.year}
+                        mode={"dropdown"}
+                    >
+                        {CAR_YEARS.map((y) => {
+                            return <Picker.Item key={y} label={y} value={y}/>
+                        })}
+                    </Picker>
+                    <Picker
+                        placeholder='Make'
+                        onValueChange={(make) => {
+                            this.setState({make}, () => {
+                                getModelsByYearAndMake(this.state.year, make).then((models) => {
+                                    this.setState({ models });
+                                })
+                            })
+                        }}
+                        enabled={editing}
+                        selectedValue={this.state.make}
+                    >
+                        { this.state.makes?.map((make) => {
+                            return <Picker.Item key={make} label={make} value={make} />
+                        })}
+                    </Picker>
+                    <Picker
+                        placeholder='Model'
+                        onValueChange={(model) => {
+                            this.setState({model}, () => {
 
-                    editable={editing}
-                    defaultValue={vehicle?.make}
-                />
+                            })
+                        }}
+                        enabled={editing}
+                        selectedValue={this.state.model}
+                    >
+                        { this.state.models?.map((model) => {
+                            return <Picker.Item key={model} label={model} value={model} />
+                        })}
+                    </Picker>
+                </View>
             </CardItem>
-            <CardItem bordered={editing}>
-                <Input
-                    placeholder='Year'
-                    onChangeText={(text) =>
-                        this.setState({year: text})
-                    }
-
-                    editable={editing}
-                    defaultValue={vehicle?.year}
-                />
-            </CardItem>
-            <CardItem bordered={editing}>
-                <Input
-                    placeholder='Model'
-                    onChangeText={(text) =>
-                        this.setState({model: text})
-                    }
-
-                    editable={editing}
-                    defaultValue={vehicle?.model}
-                />
-            </CardItem>
-
         </Card>
     }
     renderMileage() {
@@ -499,8 +536,8 @@ class VehicleForm extends React.Component<any> {
     render() {
         return <Container>
             <Content>
-                {this.renderImage()}
                 {this.renderForm()}
+                {this.renderImage()}
                 {this.renderMileage()}
             </Content>
         </Container>

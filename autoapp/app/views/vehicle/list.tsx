@@ -1,7 +1,7 @@
 import React from "react";
 import {connect} from "react-redux";
 import {Image, View} from "react-native";
-import {Button, Content, List, ListItem, Spinner, Text} from "native-base";
+import {Button, Card, Content, List, ListItem, Spinner, Text} from "native-base";
 
 import ListStyleSheet from "./list.style";
 import {requestProfileFetch} from "../../store/profile/actions";
@@ -66,36 +66,33 @@ class Home extends React.PureComponent<any> {
                 {/*<Text >customer.home.greeting</Text>*/}
             </View>
             {/*<Text>customer.home.vehicles</Text>*/}
-            <List dataArray={Object.values(profile.vehicles)} renderRow={(item) => {
+            <List style={ListStyleSheet.listContainer} dataArray={Object.values(profile.vehicles)} renderRow={(item) => {
                 let vehicle = item;
                 const width = 64;
                 const {imageThumbnail} = vehicle;
-                return <ListItem key={vehicle.id} button onPress={this.selectVehicle(vehicle).bind(this)}>
-                    <View style={{flex: 1, flexDirection: "row", justifyContent:"space-between"}}>
+                const imageExists = imageThumbnail !== null && imageThumbnail !== undefined;
+                return <ListItem style={ListStyleSheet.rowContainer} key={vehicle.id} onPress={this.selectVehicle(vehicle).bind(this)}>
+                    <View style={{flex: 1, flexDirection: "row"}}>
                         <View>
-                            {imageThumbnail !== null && imageThumbnail !== undefined && <Image
+                            {imageExists && <Image
                                 style={{width, height: width, resizeMode: 'center'}}
                                 source={{uri: BASE_64_IMAGE(imageThumbnail as unknown as string)} }
                             /> }
-                            {imageThumbnail === null || imageThumbnail === undefined && <View
+                            {!imageExists && <View
                                 style={{width, height: width, backgroundColor: '#888888'}}
                             />}
                         </View>
-                        <View>
-                            <View style={{flex: 1, flexDirection:"row", justifyContent:"space-between"}}>
-                                <Text style={ListStyleSheet.rowText}>
+                        <View style={ListStyleSheet.rowDescription}>
+                            <View style={{ flex: 1, alignItems: "stretch"}}>
+                                <Text style={{ ...ListStyleSheet.rowText, fontSize: 20}}>
                                     {vehicle.make}
                                 </Text>
                                 <Text style={ListStyleSheet.rowText}>
                                     {vehicle.model}
                                 </Text>
-                                <Text style={ListStyleSheet.rowText}>
+                                <Text style={{ ...ListStyleSheet.rowText, fontSize: 10}}>
                                     {vehicle.year}
                                 </Text>
-                            </View>
-
-                            <View style={{flex: 1, flexDirection:"row", justifyContent:"space-between"}}>
-
                             </View>
                         </View>
                     </View>

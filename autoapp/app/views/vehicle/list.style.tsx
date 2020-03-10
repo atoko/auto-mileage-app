@@ -1,12 +1,19 @@
 import {StyleSheet} from "react-native";
 
 const ListStyleSheet = StyleSheet.create({
+    listContainer: {
+    },
+    rowContainer: {
+        paddingTop: 8,
+        paddingBottom: 8
+    },
     rowText: {
-        fontSize: 32,
-        marginRight: 8
+        fontSize: 14,
+        width: "100%"
     },
     rowDescription: {
-
+        marginLeft: 18,
+        flexGrow: 1
     }
 });
 
