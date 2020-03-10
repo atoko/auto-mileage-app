@@ -371,7 +371,11 @@ class VehicleForm extends React.Component<any> {
                         onValueChange={(year) => {
                             this.setState({year}, () => {
                                 getMakesByYear(year).then((makes) => {
-                                    this.setState({ makes });
+                                    let {make} = this.state;
+                                    if (makes.indexOf(make) === -1) {
+                                        make = makes[0];
+                                    }
+                                    this.setState({ makes, make });
                                 })
                             })
                         }}
@@ -388,7 +392,7 @@ class VehicleForm extends React.Component<any> {
                         onValueChange={(make) => {
                             this.setState({make}, () => {
                                 getModelsByYearAndMake(this.state.year, make).then((models) => {
-                                    this.setState({ models });
+                                    this.setState({ models, model: models[0] });
                                 })
                             })
                         }}

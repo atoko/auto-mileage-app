@@ -76,7 +76,7 @@ class Home extends React.PureComponent<any> {
                         <View>
                             {imageExists && <Image
                                 style={{width, height: width, resizeMode: 'center'}}
-                                source={{uri: BASE_64_IMAGE(imageThumbnail as unknown as string)} }
+                                source={ {uri: BASE_64_IMAGE(imageThumbnail as unknown as string)} }
                             /> }
                             {!imageExists && <View
                                 style={{width, height: width, backgroundColor: '#888888'}}
