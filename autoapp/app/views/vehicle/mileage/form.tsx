@@ -109,7 +109,7 @@ class VehicleMileageForm extends React.PureComponent<any, any> {
                     large
                     onPress={this.onSave}
                 >
-                    <Text>Create</Text>
+                    <Text>Save</Text>
                 </Button>
             </CardItem>
         </Card>
