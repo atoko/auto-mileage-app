@@ -13,9 +13,14 @@ export const defaultState: () => VehicleStore = () => ({
 });
 
 const loadVehicle = (state: VehicleStore = defaultState(), action: any = {}) => {
-    const {vehicle} = action;
+    let {vehicle} = action;
 
     if (vehicle && vehicle.id) {
+        // @ts-ignore
+        const currentVehicle = state.map[vehicle.id];
+        if (currentVehicle !== undefined) {
+            vehicle = { ...currentVehicle, ...vehicle }
+        }
         return {
             map: {
                 ...state.map,

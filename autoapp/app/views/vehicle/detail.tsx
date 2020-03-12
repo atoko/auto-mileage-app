@@ -8,7 +8,7 @@ import {
     Card,
     CardItem,
     Container,
-    Content,
+    Content, Fab,
     H2, Icon,
     Input, Picker,
     Text,
@@ -37,12 +37,13 @@ class VehicleForm extends React.Component<any> {
         editing: false,
         loading: false,
         saving: false,
-        editingMileage: false,
+        actionOpen: false,
         year: "",
         make: "",
         model: "",
         mileageCurrent: "",
-        notificationDate: null,
+        oiledDate: null,
+        notificationData: null,
         imageData: null,
         imageFull: null,
         versionKey: null
@@ -115,7 +116,6 @@ class VehicleForm extends React.Component<any> {
                 const {vehicles} = vehicle.data;
                 const {id: vehicleId} = vehicles;
                 loadVehicleToStore(vehicles);
-                this.loadVehicle(vehicleId);
                 this.setState({
                     error: null,
                     saving: false,
@@ -252,7 +252,7 @@ class VehicleForm extends React.Component<any> {
             navigation.setOptions({
                 headerRight: () => (
                     <Button
-                        transparent={!editing}
+                        transparent
                         style={{
                             marginRight: 8
                         }}
@@ -276,6 +276,7 @@ class VehicleForm extends React.Component<any> {
 
     synchronizeState(vehicle: VehicleResponse) {
         console.info("[vehicle/detail] image obtained", vehicle.imageFull?.slice(0, 10));
+        console.info("[vehicle/detail] mileage obtained", vehicle.mileage?.current);
         this.setState({
             year: vehicle.year,
             make: vehicle.make,
@@ -316,10 +317,6 @@ class VehicleForm extends React.Component<any> {
                     this.setState({ models, model});
                 }).catch(() => {})
             }
-        }
-
-        if (vehicle) {
-            this.synchronizeState(vehicle);
         }
     }
     componentDidMount() {
@@ -464,13 +461,13 @@ class VehicleForm extends React.Component<any> {
         const {vehicleId} = this.props.route?.params || {};
         const {vehicle = {}} = this.props;
         const {vehicleMileage = []} = vehicle;
-        const {editing, editingMileage} = this.state;
+        const {editing} = this.state;
 
         const lastMileage = vehicleMileage[0];
 
         return <Card>
             <CardItem header bordered>
-                <Icon name={"speedometer"} type={"MaterialCommunityIcons"}></Icon>
+                <Icon name={"counter"} type={"MaterialCommunityIcons"}></Icon>
                 <Input
                     editable={false}
                 >
@@ -484,48 +481,13 @@ class VehicleForm extends React.Component<any> {
                     placeholder={"#"}
                     keyboardType={"number-pad"}
                     editable={!vehicleId || editing}
-                    ref={this.mileageCurrentInput}
                     defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
                     onChangeText={(text) =>
                         this.setState({mileageCurrent: text})
                     }
                 />
             </CardItem>
-            <CardItem bordered>
-                <Input editable={false}>
-                    Last updated:
-                </Input>
-                {
-                    vehicleId && lastMileage && <Input
-                        editable={false}
-                    >
-                        <Text>
-                            {moment.unix(parseInt(lastMileage.created) / 1000).format("lll")}
-                        </Text>
-                    </Input>
-                }
-            </CardItem>
-            {
-                vehicleId && <CardItem bordered>
-                    <Input
-                        editable={false}
-                    >
-                        Next reminder:
-                    </Input>
-                    {
-                        this.state.notificationDate &&
-                        <Input
-                            editable={false}
-                        >
-                            <Text>
-                                {moment.unix(parseInt(this.state.notificationDate as unknown as string) / 1000).format("ll")}
-                            </Text>
-                        </Input>
-                    }
-                </CardItem>
-            }
             <CardItem>
-
                 {!vehicleId && <Button
                     large
                     onPress={this.onSubmit}
@@ -535,6 +497,31 @@ class VehicleForm extends React.Component<any> {
             </CardItem>
         </Card>
     }
+    renderActionButton() {
+        const {navigation, vehicle} = this.props;
+        return <Fab
+            direction="up"
+            style={{backgroundColor: '#5067FF'}}
+            active={this.state.actionOpen}
+            position="bottomRight"
+            onPress={() => {this.setState({
+                actionOpen: !this.state.actionOpen
+            })}}
+        >
+                <Icon name={"notebook-multiple"} type={"MaterialCommunityIcons"}></Icon>
+                <Button style={{ backgroundColor: '#34A34F' }}
+                >
+                    <Icon name={"oil"} type={"MaterialCommunityIcons"} />
+                </Button>
+                <Button style={{ backgroundColor: '#34A34F' }}
+                    onPress={() => {
+                        navigation.navigate("Vehicle/Mileage/Form", {vehicleId: vehicle?.id})
+                    }}
+                >
+                    <Icon name={"counter"} type={"MaterialCommunityIcons"} />
+                </Button>
+            </Fab>
+    }
     render() {
         return <Container>
             <Content>
@@ -542,6 +529,7 @@ class VehicleForm extends React.Component<any> {
                 {this.renderImage()}
                 {this.renderMileage()}
             </Content>
+            {this.renderActionButton()}
         </Container>
     }
 }

@@ -20,7 +20,7 @@ class Home extends React.PureComponent<any> {
                 <Button
                     transparent
                     onPress={() => {
-                        navigation.navigate("Vehicle/Form", {vehicleId: null})
+                        navigation.navigate("Vehicle/Detail", {vehicleId: null})
                     }}
                 ><Text>+</Text>
                 </Button>
@@ -30,7 +30,7 @@ class Home extends React.PureComponent<any> {
 
     selectVehicle = (vehicle: any) => () => {
         let {navigation} = this.props;
-        navigation.navigate("Vehicle/Detail", {vehicleId: vehicle.id, _vehicle_: vehicle})
+        navigation.navigate("Vehicle/Detail", {vehicleId: vehicle.id})
     };
 
     componentDidMount() {

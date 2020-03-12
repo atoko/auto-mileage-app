@@ -16,17 +16,17 @@ export const Navigation = () =>
                     }}
                 />
                 <Stack.Screen
-                    name="Vehicle/Form"
+                    name="Vehicle/Detail"
                     component={VehicleViews.detail}
                     options={{
                         title: ""
                     }}
                 />
                 <Stack.Screen
-                    name="Vehicle/Detail"
-                    component={VehicleViews.detail}
+                    name="Vehicle/Mileage/Form"
+                    component={VehicleViews.mileageForm}
                     options={{
-                        title: ""
+                        title: "Update mileage"
                     }}
                 />
             </Stack.Navigator>
