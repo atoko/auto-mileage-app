@@ -134,13 +134,22 @@ class VehicleMileageForm extends React.PureComponent<any, any> {
                                         this.setState({showDatePicker: true});
                                     }}
                                 >
-                                    <Input
+                                    { this.state.notificationDate && <Input
                                         editable={false}
                                     >
-                                        {this.state.notificationDate &&
+                                        {
                                             moment.unix(parseInt(this.state.notificationDate as unknown as string) / 1000).format("ll")
                                         }
                                     </Input>
+                                    }
+                                    { !this.state.notificationDate && <Button
+                                        onPress={() => {
+                                            this.setState({showDatePicker: true});
+                                        }}
+                                    >
+                                        <Text>Set reminder</Text>
+                                    </Button>
+                                    }
                                 </TouchableOpacity>
                             }
                             { this.state.notificationDate &&
