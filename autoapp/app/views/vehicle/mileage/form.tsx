@@ -1,16 +1,16 @@
 import {connect} from "react-redux";
 import React from "react";
+import moment from "moment";
+import {Platform, TouchableOpacity} from "react-native";
+import PushNotification from "react-native-push-notification";
+import {Button, Card, CardItem, Container, Content, H2, Icon, Input, Text, View} from "native-base";
+import DatePicker from "@react-native-community/datetimepicker"
 
 import {getAuth} from "../../../store/authorization/reducer";
 import {getVehicleById, getVehicleIsFetching} from "../../../store/vehicles/reducer";
 import {vehicleLoadAction} from "../../../store/vehicles/actions";
-import {Button, Card, CardItem, Container, Content, H2, Icon, Input, Text, View} from "native-base";
-import DatePicker from "@react-native-community/datetimepicker"
 import {VehiclePutResponse} from "../../../api/vehicles/update";
 import {UpdateVehicleMileage} from "../../../api/vehicles/mileage/put";
-import moment from "moment";
-import {Platform, TouchableOpacity} from "react-native";
-import PushNotification from "react-native-push-notification";
 
 const TODAY = new Date(Date.now());
 const IS_IOS = Platform.OS === 'ios';
@@ -19,7 +19,8 @@ class VehicleMileageForm extends React.PureComponent<any, any> {
     state = {
         showDatePicker: false,
         mileageCurrent: undefined,
-        notificationDate: undefined
+        notificationDate: undefined,
+        versionKey: null
     };
 
     setNotification(notificationDate: Date) {
@@ -81,15 +82,37 @@ class VehicleMileageForm extends React.PureComponent<any, any> {
             }
         });
     };
-
-    componentDidMount(): void {
-        const {vehicle} = this.props;
-        this.setState({
-            mileageCurrent: vehicle?.mileage?.current,
-            notificationDate: vehicle.mileage?.notificationDate
-        })
+    synchronizeState = () => {
+        const {vehicleIsLoading, vehicle} = this.props;
+        if (!vehicleIsLoading && vehicle) {
+            this.setState({
+                mileageCurrent: vehicle?.mileage?.current,
+                notificationDate: vehicle?.mileage?.notificationDate,
+                versionKey: vehicle?.versionKey
+            })
+        }
     }
-
+    componentDidUpdate() {
+        if (this.props.vehicle?.versionKey !== this.state.versionKey) {
+            this.synchronizeState();
+        }
+    }
+    componentDidFocus = (): void => {
+        this.synchronizeState();
+    }
+    componentDidMount() {
+        const {navigation} = this.props;
+        if (navigation) {
+            navigation.addListener('focus', this.componentDidFocus);
+        }
+        this.synchronizeState();
+    }
+    componentWillUnmount() {
+        const {navigation} = this.props;
+        if (navigation) {
+            navigation.removeListener('focus', this.componentDidFocus)
+        }
+    }
     render() {
         const {vehicleId} = this.props.route?.params || {};
         const {vehicle = {}} = this.props;
@@ -129,7 +152,7 @@ class VehicleMileageForm extends React.PureComponent<any, any> {
                                 Remind me:
                             </Input>
                             {
-                                !IS_IOS && <TouchableOpacity
+                                <TouchableOpacity
                                     onPress={() => {
                                         this.setState({showDatePicker: true});
                                     }}
@@ -142,9 +165,10 @@ class VehicleMileageForm extends React.PureComponent<any, any> {
                                         }
                                     </Input>
                                     }
-                                    { !this.state.notificationDate && <Button
+                                    { !this.state.notificationDate && !this.state.showDatePicker && <Button
                                         onPress={() => {
-                                            this.setState({showDatePicker: true});
+                                            const theDate = this.props.vehicle?.mileage.notificationDate || TODAY.getTime()
+                                            this.setState({showDatePicker: true, notificationDate: theDate});
                                         }}
                                     >
                                         <Text>Set reminder</Text>
@@ -152,34 +176,39 @@ class VehicleMileageForm extends React.PureComponent<any, any> {
                                     }
                                 </TouchableOpacity>
                             }
-                            { this.state.notificationDate &&
+                            { (this.state.notificationDate || (IS_IOS && this.state.showDatePicker )) &&
                                 <Button
                                     danger
                                     small
                                     onPress={() => {
-                                        this.setState({notificationDate: null})
+                                        this.setState({notificationDate: null, showDatePicker: false})
                                     }}
                                 >
                                     <Text>X</Text>
                                 </Button>
                             }
-                            {
-                                (IS_IOS || this.state.showDatePicker) && <DatePicker
-                                    active={false}
-                                    minimumDate={TODAY}
-                                    value={this.state?.notificationDate || TODAY}
-                                    onChange={({nativeEvent, type}: { nativeEvent: { timestamp: number }, type: any }) => {
-                                        const {timestamp} = nativeEvent;
-                                        const newState = {} as any;
-
-                                        if (type === "set") {
-                                            newState.notificationDate = timestamp;
-                                        }
-                                        this.setState({...newState, showDatePicker: false})
-                                    }}
-                                />
-                            }
                         </CardItem>
+                    }
+                    {
+                        (this.state.showDatePicker) && <DatePicker
+                            display={"default"}
+                            minimumDate={TODAY}
+                            value={this.state?.notificationDate ? new Date(this.state.notificationDate) : TODAY}
+                            onChange={({nativeEvent, type}: {
+                                nativeEvent: { timestamp: number }, type: any
+                            }, timestamp) => {
+                                const newState = {} as any;
+
+                                if (!IS_IOS) {
+                                    if (type === "set") {
+                                        newState.notificationDate = timestamp.getTime();
+                                    }
+                                } else {
+                                    newState.notificationDate = timestamp.getTime();
+                                }
+                                this.setState({...newState, showDatePicker: IS_IOS})
+                            }}
+                        />
                     }
                     <CardItem>
 

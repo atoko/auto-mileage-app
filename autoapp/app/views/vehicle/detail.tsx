@@ -43,7 +43,7 @@ class VehicleForm extends React.Component<any> {
         model: "",
         mileageCurrent: "",
         oiledDate: null,
-        notificationData: null,
+        notificationDate: null,
         imageData: null,
         imageFull: null,
         versionKey: null
@@ -282,8 +282,6 @@ class VehicleForm extends React.Component<any> {
     }
 
     synchronizeState(vehicle: VehicleResponse) {
-        console.info("[vehicle/detail] image obtained", vehicle.imageFull?.slice(0, 10));
-        console.info("[vehicle/detail] mileage obtained", vehicle.mileage?.current);
         this.setState({
             year: vehicle.year,
             make: vehicle.make,
@@ -471,7 +469,6 @@ class VehicleForm extends React.Component<any> {
         const {editing} = this.state;
 
         const lastMileage = vehicleMileage[0];
-
         return <Card><CardItem header bordered>
             <Icon name={"counter"} type={"MaterialCommunityIcons"}></Icon>
             <Input
@@ -491,13 +488,21 @@ class VehicleForm extends React.Component<any> {
                 }
             />
         </CardItem>
-            <CardItem>
-                <Input>
-                    <Text>
+            {
+                vehicleId && <CardItem>
+                    <Input editable={false}>
                         Next reminder:
-                    </Text>
-                </Input>
-            </CardItem>
+                    </Input>
+                    { this.state.notificationDate != null ? <Input
+                        editable={false}
+                    >
+                        {
+                            moment.unix(parseInt(this.state.notificationDate as unknown as string) / 1000).format("ll")
+                        }
+                    </Input> : <Input>-</Input>
+                    }
+                </CardItem>
+            }
         </Card>
     }
     renderOil() {
@@ -560,17 +565,19 @@ class VehicleForm extends React.Component<any> {
         </Fab>
     }
     render() {
+        const {vehicleId} = this.props.route?.params || {};
+
         return <Container>
             <Content>
                 {this.renderForm()}
                 {this.renderImage()}
                 <Card>
                     {this.renderMileage()}
-                    {this.renderOil()}
+                    {vehicleId && this.renderOil()}
                 </Card>
                 {this.renderLog()}
             </Content>
-            {this.renderActionButton()}
+            {vehicleId && this.renderActionButton()}
         </Container>
     }
 }
