@@ -245,10 +245,10 @@ class VehicleForm extends React.Component<any> {
     }
 
     updateNavigation() {
-        const {navigation} = this.props;
+        const {navigation, route} = this.props;
         const {editing, versionKey} = this.state;
-        console.info("[vehicle/detail] ", versionKey);
-        if (versionKey !== null) {
+        const {vehicleId} = route?.params;
+
             navigation.setOptions({
                 headerRight: () => (
                     <Button
@@ -257,21 +257,28 @@ class VehicleForm extends React.Component<any> {
                             marginRight: 8
                         }}
                         onPress={() => {
-                            if (!editing) {
-                                this.setState({
-                                    editing: true
-                                })
+                            if (vehicleId) {
+                                if (!editing) {
+                                    this.setState({
+                                        editing: true
+                                    })
+                                } else {
+                                    this.onSave();
+                                }
                             } else {
-                                this.onSave();
+                                this.onSubmit();
                             }
                     }}>
                         <Text>
-                            {!editing ? "Edit" : "Save"}
+                            {vehicleId ?
+                                !editing ? "Edit"
+                                    : "Save"
+                                : "Create"
+                            }
                         </Text>
                     </Button>
                 ),
             });
-        }
     }
 
     synchronizeState(vehicle: VehicleResponse) {
@@ -465,37 +472,64 @@ class VehicleForm extends React.Component<any> {
 
         const lastMileage = vehicleMileage[0];
 
-        return <Card>
-            <CardItem header bordered>
-                <Icon name={"counter"} type={"MaterialCommunityIcons"}></Icon>
-                <Input
-                    editable={false}
-                >
-                    <H2>Mileage</H2>
-                </Input>
-                <View>
-
-
-                </View>
-                <Input
-                    placeholder={"#"}
-                    keyboardType={"number-pad"}
-                    editable={!vehicleId || editing}
-                    defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
-                    onChangeText={(text) =>
-                        this.setState({mileageCurrent: text})
-                    }
-                />
-            </CardItem>
+        return <Card><CardItem header bordered>
+            <Icon name={"counter"} type={"MaterialCommunityIcons"}></Icon>
+            <Input
+                editable={false}
+            >
+                <H2>Mileage</H2>
+            </Input>
+            <View>
+            </View>
+            <Input
+                placeholder={"#"}
+                keyboardType={"number-pad"}
+                editable={!vehicleId || editing}
+                defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
+                onChangeText={(text) =>
+                    this.setState({mileageCurrent: text})
+                }
+            />
+        </CardItem>
             <CardItem>
-                {!vehicleId && <Button
-                    large
-                    onPress={this.onSubmit}
-                >
-                    <Text>Create</Text>
-                </Button>}
+                <Input>
+                    <Text>
+                        Next reminder:
+                    </Text>
+                </Input>
             </CardItem>
         </Card>
+    }
+    renderOil() {
+        const {vehicleId} = this.props.route?.params || {};
+        const {vehicle = {}} = this.props;
+        const {vehicleMileage = []} = vehicle;
+        const {editing} = this.state;
+
+        const lastMileage = vehicleMileage[0];
+
+        return  <CardItem header bordered>
+            <Icon name={"oil"} type={"MaterialCommunityIcons"}></Icon>
+            <Input
+                editable={false}
+            >
+                <H2>Oil change</H2>
+            </Input>
+            <View>
+            </View>
+            <Input
+                placeholder={"#"}
+                keyboardType={"number-pad"}
+                editable={!vehicleId || editing}
+                defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
+                onChangeText={(text) =>
+                    this.setState({mileageCurrent: text})
+                }
+            />
+        </CardItem>
+    }
+    renderLog() {
+        return null;
     }
     renderActionButton() {
         const {navigation, vehicle} = this.props;
@@ -510,6 +544,9 @@ class VehicleForm extends React.Component<any> {
         >
                 <Icon name={"notebook-multiple"} type={"MaterialCommunityIcons"}></Icon>
                 <Button style={{ backgroundColor: '#34A34F' }}
+                    onPress={() => {
+                        navigation.navigate("Vehicle/Oil/Form", {vehicleId: vehicle?.id})
+                    }}
                 >
                     <Icon name={"oil"} type={"MaterialCommunityIcons"} />
                 </Button>
@@ -520,14 +557,18 @@ class VehicleForm extends React.Component<any> {
                 >
                     <Icon name={"counter"} type={"MaterialCommunityIcons"} />
                 </Button>
-            </Fab>
+        </Fab>
     }
     render() {
         return <Container>
             <Content>
                 {this.renderForm()}
                 {this.renderImage()}
-                {this.renderMileage()}
+                <Card>
+                    {this.renderMileage()}
+                    {this.renderOil()}
+                </Card>
+                {this.renderLog()}
             </Content>
             {this.renderActionButton()}
         </Container>
