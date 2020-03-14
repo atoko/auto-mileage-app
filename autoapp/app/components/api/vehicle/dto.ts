@@ -2,6 +2,10 @@
 global.window = null;
 const microValidator = require('micro-validator').default;
 
+export interface OilData {
+    lastChange: number
+}
+
 export interface MileageData {
     current: string,
     notificationDate?: string | null
@@ -12,6 +16,7 @@ export interface VehicleData {
     model: string;
     year: string;
     mileage: MileageData;
+    oil: OilData;
     imageData?: string | null;
 }
 

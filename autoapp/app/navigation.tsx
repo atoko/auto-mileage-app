@@ -29,6 +29,13 @@ export const Navigation = () =>
                         title: "Update mileage"
                     }}
                 />
+                <Stack.Screen
+                    name="Vehicle/Oil/Form"
+                    component={VehicleViews.oilForm}
+                    options={{
+                        title: "Log Oil Change"
+                    }}
+                />
             </Stack.Navigator>
         </Root>
 

@@ -5,7 +5,7 @@ import Base64Binary from "../utils/base64-binary";
 import {Image} from "react-native";
 
 import {ProfileNotFound} from "../response/profile/exception";
-import {MileageData, VehicleData, VehicleRow} from "./dto";
+import {MileageData, OilData, VehicleData, VehicleRow} from "./dto";
 import {ProfileRow} from "../profile/dto";
 import {VehicleNotFound, VehicleNotFoundCode} from "../response/vehicle/exception";
 import {ProfileVehicleIndexStorage, VehicleStorage} from "../asyncStorage";
@@ -49,15 +49,32 @@ const updateMileage = async (id: string, mileage: MileageData) : Promise<void> =
     const vehicleLog = await VehicleStorage.get(VEHICLE_MILEAGE(id));
     const entry = {
         id: uuidv4().substr(0, 8),
+        type: "mileage",
         mileage: mileage.current,
         created: Date.now().toString()
     };
     let newLog = [entry];
     if (vehicleLog != null) {
-        newLog = [...JSON.parse(vehicleLog), entry]
+        newLog = [...JSON.parse(vehicleLog).filter(({type}: any) => type != "mileage"), entry]
     }
     await VehicleStorage.set(VEHICLE_MILEAGE(id), JSON.stringify(newLog));
 };
+
+const updateOilChange = async (id: string, mileage: MileageData) : Promise<void> => {
+    const vehicleLog = await VehicleStorage.get(VEHICLE_MILEAGE(id));
+    const entry = {
+        id: uuidv4().substr(0, 8),
+        type: "oil",
+        mileage: mileage.current,
+        created: Date.now().toString()
+    };
+    let newLog = [entry];
+    if (vehicleLog != null) {
+        newLog = [...JSON.parse(vehicleLog).filter(({type}: any) => type != "oil"), entry]
+    }
+    await VehicleStorage.set(VEHICLE_MILEAGE(id), JSON.stringify(newLog));
+};
+
 
 export const createVehicle = async (profile : ProfileRow, vehicle: VehicleData) : Promise<VehicleRow>=> {
     let id = uuidv4();
@@ -128,8 +145,13 @@ export const updateVehicle = async (profile : ProfileRow, vehicleId: string, veh
 
            await VehicleStorage.set(VEHICLE_ID(vehicleId), JSON.stringify(newVehicle));
            {
-               if (vehicle.mileage && vehicleSnapshot.mileage.current !==  vehicle.mileage.current) {
-                   await updateMileage(vehicleId, vehicle.mileage);
+               if (vehicle.mileage && vehicleSnapshot.mileage.current !==  newVehicle.mileage.current) {
+                   await updateMileage(vehicleId, newVehicle.mileage);
+               }
+           }
+           {
+               if (vehicle.oil && vehicleSnapshot?.oil?.lastChange !==  vehicle.oil.lastChange) {
+                   await updateOilChange(vehicleId, newVehicle.mileage);
                }
            }
            {

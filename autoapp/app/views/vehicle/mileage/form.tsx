@@ -121,7 +121,7 @@ class VehicleMileageForm extends React.PureComponent<any, any> {
 
         const isSame = (vehicle?.mileage?.current === this.state.mileageCurrent) &&
             (vehicle?.mileage?.notificationDate === this.state.notificationDate);
-        const lastMileage = vehicleMileage[0];
+        const lastMileage = vehicleMileage.filter(({type}: any) => type === "mileage")[0];
 
         return <Container>
             <Content>

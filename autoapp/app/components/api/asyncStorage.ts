@@ -16,17 +16,19 @@ export const InitializeVehicleStorage = async () => {
     let isInitialized = await VehicleStorage.get(INIT_FLAG);
     isInitialized = JSON.parse(isInitialized);
     if (isInitialized == null) {
-        await NewVehicle({
-            authentication: "local",
-            body: {
-                make: "Mazda",
-                model: "3",
-                year: "2019",
-                mileage: {
-                    current: "0"
+        if (__DEV__) {
+            await NewVehicle({
+                authentication: "local",
+                body: {
+                    make: "Mazda",
+                    model: "3",
+                    year: "2019",
+                    mileage: {
+                        current: "0"
+                    }
                 }
-            }
-        });
+            });
+        }
         await VehicleStorage.set(INIT_FLAG, "true");
     }
 };

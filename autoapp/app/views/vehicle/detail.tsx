@@ -9,7 +9,7 @@ import {
     CardItem,
     Container,
     Content, Fab,
-    H2, Icon,
+    H2, H3, Icon,
     Input, Picker,
     Text,
     Toast, View
@@ -42,7 +42,7 @@ class VehicleForm extends React.Component<any> {
         make: "",
         model: "",
         mileageCurrent: "",
-        oiledDate: null,
+        oilDate: null,
         notificationDate: null,
         imageData: null,
         imageFull: null,
@@ -290,9 +290,11 @@ class VehicleForm extends React.Component<any> {
             notificationDate: vehicle.mileage?.notificationDate,
             imageData: vehicle.imageData,
             imageFull: vehicle.imageFull,
+            oilDate: vehicle.oil?.lastChange,
             versionKey: vehicle.versionKey
         })
 
+        //TODO don't load on every call
         getMakesByYear(vehicle.year).then(async (makes) => {
             this.setState({ makes });
             const models = await getModelsByYearAndMake(this.state.year, vehicle.make);
@@ -474,14 +476,14 @@ class VehicleForm extends React.Component<any> {
             <Input
                 editable={false}
             >
-                <H2>Mileage</H2>
+                <H3>Mileage</H3>
             </Input>
             <View>
             </View>
             <Input
                 placeholder={"#"}
                 keyboardType={"number-pad"}
-                editable={!vehicleId || editing}
+                editable={!vehicleId}
                 defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
                 onChangeText={(text) =>
                     this.setState({mileageCurrent: text})
@@ -491,7 +493,7 @@ class VehicleForm extends React.Component<any> {
             {
                 vehicleId && <CardItem>
                     <Input editable={false}>
-                        Next reminder:
+                        Next reminder
                     </Input>
                     { this.state.notificationDate != null ? <Input
                         editable={false}
@@ -509,11 +511,11 @@ class VehicleForm extends React.Component<any> {
         const {vehicleId} = this.props.route?.params || {};
         const {vehicle = {}} = this.props;
         const {vehicleMileage = []} = vehicle;
-        const {editing} = this.state;
+        const {editing, oilDate} = this.state;
 
-        const lastMileage = vehicleMileage[0];
+        const lastOil = vehicleMileage.filter(({type}: any) => type == "oil")[0];
 
-        return  <CardItem header bordered>
+        return  oilDate && <React.Fragment><CardItem header bordered>
             <Icon name={"oil"} type={"MaterialCommunityIcons"}></Icon>
             <Input
                 editable={false}
@@ -523,15 +525,29 @@ class VehicleForm extends React.Component<any> {
             <View>
             </View>
             <Input
-                placeholder={"#"}
-                keyboardType={"number-pad"}
-                editable={!vehicleId || editing}
-                defaultValue={vehicleId ? vehicle?.mileage?.current : ""}
-                onChangeText={(text) =>
-                    this.setState({mileageCurrent: text})
+                editable={false}
+            >
+                { oilDate &&
+                    moment.unix(parseInt(oilDate as unknown as string) / 1000).format("ll")
                 }
-            />
+            </Input>
         </CardItem>
+            <CardItem>
+                {
+                    vehicleId && <CardItem>
+                        <Input editable={false}>
+                            Mileage
+                        </Input>
+                        { lastOil != null ? <Input
+                            editable={false}
+                        >
+                            { lastOil.mileage }
+                        </Input> : <Input>-</Input>
+                        }
+                    </CardItem>
+                }
+            </CardItem>
+        </React.Fragment>
     }
     renderLog() {
         return null;
@@ -571,8 +587,8 @@ class VehicleForm extends React.Component<any> {
             <Content>
                 {this.renderForm()}
                 {this.renderImage()}
+                {this.renderMileage()}
                 <Card>
-                    {this.renderMileage()}
                     {vehicleId && this.renderOil()}
                 </Card>
                 {this.renderLog()}
